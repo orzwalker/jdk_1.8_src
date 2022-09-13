@@ -184,6 +184,7 @@ public class LinkedBlockingQueue<E> extends AbstractQueue<E>
         final ReentrantLock putLock = this.putLock;
         putLock.lock();
         try {
+            // 执行出队操作后，队列不满，唤起"队列不满条件等待队列"中的线程
             notFull.signal();
         } finally {
             putLock.unlock();
@@ -347,6 +348,7 @@ public class LinkedBlockingQueue<E> extends AbstractQueue<E>
              * for all other uses of count in other wait guards.
              */
             while (count.get() == capacity) {
+                // 队列满了，该线程进入"队列不满这个条件等待队列"，当执行出队操作后，唤起这个等待队列中的线程执行入队操作
                 notFull.await();
             }
             enqueue(node);
@@ -433,6 +435,9 @@ public class LinkedBlockingQueue<E> extends AbstractQueue<E>
         return c >= 0;
     }
 
+    /**
+     * 出队操作
+     */
     public E take() throws InterruptedException {
         E x;
         int c = -1;
@@ -441,6 +446,7 @@ public class LinkedBlockingQueue<E> extends AbstractQueue<E>
         takeLock.lockInterruptibly();
         try {
             while (count.get() == 0) {
+                // 如果队列中元素为空，当前线程进入"队列不为空条件等待队列"，等待元素不为空时被唤起，如入队操作中
                 notEmpty.await();
             }
             x = dequeue();
