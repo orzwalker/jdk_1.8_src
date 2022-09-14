@@ -181,6 +181,9 @@ public interface Lock {
      * circumstances and the exception type must be documented by that
      * {@code Lock} implementation.
      */
+    /**
+     * 阻塞获取锁
+     */
     void lock();
 
     /**
@@ -229,6 +232,9 @@ public interface Lock {
      *         interrupted while acquiring the lock (and interruption
      *         of lock acquisition is supported)
      */
+    /**
+     * 支持中断
+     */
     void lockInterruptibly() throws InterruptedException;
 
     /**
@@ -257,6 +263,9 @@ public interface Lock {
      *
      * @return {@code true} if the lock was acquired and
      *         {@code false} otherwise
+     */
+    /**
+     * 非阻塞获取锁
      */
     boolean tryLock();
 
@@ -317,6 +326,10 @@ public interface Lock {
      * @throws InterruptedException if the current thread is interrupted
      *         while acquiring the lock (and interruption of lock
      *         acquisition is supported)
+     */
+    /**
+     * 支持超时的API
+     * 在time时间内是阻塞的
      */
     boolean tryLock(long time, TimeUnit unit) throws InterruptedException;
 

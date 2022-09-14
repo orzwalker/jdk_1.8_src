@@ -95,6 +95,7 @@ public abstract class AbstractQueue<E>
         if (offer(e))
             return true;
         else
+            // Queue.add方法执行失败后会抛出异常，offer不会
             throw new IllegalStateException("Queue full");
     }
 
@@ -114,6 +115,7 @@ public abstract class AbstractQueue<E>
         if (x != null)
             return x;
         else
+            // 同add方法，remove会抛出异常
             throw new NoSuchElementException();
     }
 
@@ -133,6 +135,7 @@ public abstract class AbstractQueue<E>
         if (x != null)
             return x;
         else
+            // 同add方法，element会抛出异常
             throw new NoSuchElementException();
     }
 

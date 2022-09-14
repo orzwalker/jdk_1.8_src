@@ -146,6 +146,9 @@ public class ReentrantLock implements Lock, java.io.Serializable {
         }
 
         protected final boolean tryRelease(int releases) {
+            // 解锁时读写volatile修饰的state
+            // 根据Happens-Before规则，一个volatile类型的变量的写操作 Happens-Before 读操作----T1线程的解锁 Happens T1线程的加锁
+            // 因为state在jvm中只有一个
             int c = getState() - releases;
             if (Thread.currentThread() != getExclusiveOwnerThread())
                 throw new IllegalMonitorStateException();
@@ -230,6 +233,7 @@ public class ReentrantLock implements Lock, java.io.Serializable {
          */
         protected final boolean tryAcquire(int acquires) {
             final Thread current = Thread.currentThread();
+            // 加锁时读写volatile修饰的state
             int c = getState();
             if (c == 0) {
                 if (!hasQueuedPredecessors() &&
@@ -252,6 +256,7 @@ public class ReentrantLock implements Lock, java.io.Serializable {
     /**
      * Creates an instance of {@code ReentrantLock}.
      * This is equivalent to using {@code ReentrantLock(false)}.
+     * 默认非公平锁
      */
     public ReentrantLock() {
         sync = new NonfairSync();

@@ -159,6 +159,9 @@ public interface Queue<E> extends Collection<E> {
      * @throws IllegalArgumentException if some property of this element
      *         prevents it from being added to this queue
      */
+    /**
+     * 添加失败时会跑出异常
+     */
     boolean add(E e);
 
     /**
@@ -178,12 +181,16 @@ public interface Queue<E> extends Collection<E> {
      * @throws IllegalArgumentException if some property of this element
      *         prevents it from being added to this queue
      */
+    /**
+     * 添加失败返回FALSE，不会抛出异常
+     */
     boolean offer(E e);
 
     /**
      * Retrieves and removes the head of this queue.  This method differs
      * from {@link #poll poll} only in that it throws an exception if this
      * queue is empty.
+     * 队列为空时，会抛出异常
      *
      * @return the head of this queue
      * @throws NoSuchElementException if this queue is empty
@@ -193,6 +200,7 @@ public interface Queue<E> extends Collection<E> {
     /**
      * Retrieves and removes the head of this queue,
      * or returns {@code null} if this queue is empty.
+     * 队列为空时不会抛出异常，返回null
      *
      * @return the head of this queue, or {@code null} if this queue is empty
      */
@@ -203,6 +211,7 @@ public interface Queue<E> extends Collection<E> {
      * differs from {@link #peek peek} only in that it throws an exception
      * if this queue is empty.
      *
+     * 为空时抛出异常
      * @return the head of this queue
      * @throws NoSuchElementException if this queue is empty
      */
@@ -212,6 +221,7 @@ public interface Queue<E> extends Collection<E> {
      * Retrieves, but does not remove, the head of this queue,
      * or returns {@code null} if this queue is empty.
      *
+     * 为空时不抛出异常
      * @return the head of this queue, or {@code null} if this queue is empty
      */
     E peek();

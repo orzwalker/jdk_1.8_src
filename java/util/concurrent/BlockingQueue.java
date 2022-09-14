@@ -196,6 +196,9 @@ public interface BlockingQueue<E> extends Queue<E> {
      * @throws IllegalArgumentException if some property of the specified
      *         element prevents it from being added to this queue
      */
+    /**
+     * 更建议使用offer
+     */
     boolean add(E e);
 
     /**
@@ -228,6 +231,8 @@ public interface BlockingQueue<E> extends Queue<E> {
      * @throws NullPointerException if the specified element is null
      * @throws IllegalArgumentException if some property of the specified
      *         element prevents it from being added to this queue
+     *
+     * 阻塞式入队
      */
     void put(E e) throws InterruptedException;
 
@@ -248,6 +253,8 @@ public interface BlockingQueue<E> extends Queue<E> {
      * @throws NullPointerException if the specified element is null
      * @throws IllegalArgumentException if some property of the specified
      *         element prevents it from being added to this queue
+     *
+     * specified 规定的、指定的
      */
     boolean offer(E e, long timeout, TimeUnit unit)
         throws InterruptedException;
@@ -258,6 +265,8 @@ public interface BlockingQueue<E> extends Queue<E> {
      *
      * @return the head of this queue
      * @throws InterruptedException if interrupted while waiting
+     *
+     * 阻塞式出队
      */
     E take() throws InterruptedException;
 
@@ -287,6 +296,7 @@ public interface BlockingQueue<E> extends Queue<E> {
      * because it may be the case that another thread is about to
      * insert or remove an element.
      *
+     * 剩余容量  length-count
      * @return the remaining capacity
      */
     int remainingCapacity();
