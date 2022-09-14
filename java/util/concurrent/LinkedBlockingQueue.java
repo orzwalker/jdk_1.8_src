@@ -77,6 +77,20 @@ import java.util.function.Consumer;
  * @author Doug Lea
  * @param <E> the type of elements held in this collection
  */
+
+/**
+ * 为什么LBQ使用双锁，ABQ使用单锁
+ *
+ * 1、因为底层数据结构不同，ABQ中数组的内存地址是固定的，比如入队和出队操作，操作相同地址的互斥性得不到保证
+ * https://stackoverflow.com/questions/11015571/arrayblockingqueue-uses-a-single-lock-for-insertion-and-removal-but-linkedblocki?noredirect=1&lq=1
+ *
+ *
+ * 2、
+ * 只要保证count的原子性，就可以使用双锁
+ * https://blog.csdn.net/icepigeon314/article/details/93792519
+ *
+ *
+ */
 public class LinkedBlockingQueue<E> extends AbstractQueue<E>
         implements BlockingQueue<E>, java.io.Serializable {
     private static final long serialVersionUID = -6903933977591709194L;
