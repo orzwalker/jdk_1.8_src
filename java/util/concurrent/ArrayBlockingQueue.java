@@ -99,7 +99,11 @@ public class ArrayBlockingQueue<E> extends AbstractQueue<E>
     /** items index for next put, offer, or add */
     int putIndex;
 
-    /** Number of elements in the queue */
+    /**
+     * Number of elements in the queue
+     * count不是原子类，所以需要单锁
+     * 理论上改成原子类后，就可以使用双锁了
+     * */
     int count;
 
     /*
@@ -107,7 +111,10 @@ public class ArrayBlockingQueue<E> extends AbstractQueue<E>
      * found in any textbook.
      */
 
-    /** Main lock guarding all access */
+    /**
+     * Main lock guarding all access
+     * 思考下为什么是单锁，而没有使用双锁
+     * */
     final ReentrantLock lock;
 
     /**
@@ -167,6 +174,7 @@ public class ArrayBlockingQueue<E> extends AbstractQueue<E>
         // putIndex起始值0，下标
         items[putIndex] = x;
         // putIndex下标加一
+        // putIndex加一是否会因为下标相同而覆盖队列中已存在的元素?————不会，靠外层的count判断
         if (++putIndex == items.length)
             // 当前指向数组最后一个元素，形成循环数组
             putIndex = 0;

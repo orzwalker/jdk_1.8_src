@@ -85,8 +85,7 @@ import java.util.function.Consumer;
  * https://stackoverflow.com/questions/11015571/arrayblockingqueue-uses-a-single-lock-for-insertion-and-removal-but-linkedblocki?noredirect=1&lq=1
  *
  *
- * 2、
- * 只要保证count的原子性，就可以使用双锁
+ * 2、只要保证count的原子性，就可以使用双锁
  * https://blog.csdn.net/icepigeon314/article/details/93792519
  *
  *
@@ -132,6 +131,7 @@ public class LinkedBlockingQueue<E> extends AbstractQueue<E>
 
     /**
      * Linked list node class
+     * 单列表
      */
     static class Node<E> {
         E item;
@@ -150,16 +150,21 @@ public class LinkedBlockingQueue<E> extends AbstractQueue<E>
     /** The capacity bound, or Integer.MAX_VALUE if none */
     private final int capacity;
 
-    /** Current number of elements */
+    /**
+     * Current number of elements
+     * 原子类count，能保证原子性，每个线程都能读到正确值，使用双锁提高性能
+     **/
     private final AtomicInteger count = new AtomicInteger();
 
     /**
+     * 虚节点
      * Head of linked list.
      * Invariant: head.item == null
      */
     transient Node<E> head;
 
     /**
+     * 虚节点
      * Tail of linked list.
      * Invariant: last.next == null
      */
@@ -178,6 +183,7 @@ public class LinkedBlockingQueue<E> extends AbstractQueue<E>
     private final Condition notFull = putLock.newCondition();
 
     /**
+     * 唤起出队
      * Signals a waiting take. Called only from put/offer (which do not
      * otherwise ordinarily lock takeLock.)
      */
@@ -192,6 +198,7 @@ public class LinkedBlockingQueue<E> extends AbstractQueue<E>
     }
 
     /**
+     * 唤起入队
      * Signals a waiting put. Called only from take/poll.
      */
     private void signalNotFull() {
@@ -213,6 +220,9 @@ public class LinkedBlockingQueue<E> extends AbstractQueue<E>
     private void enqueue(Node<E> node) {
         // assert putLock.isHeldByCurrentThread();
         // assert last.next == null;
+
+        // last.next = node;
+        // last = last.next;
         last = last.next = node;
     }
 
@@ -225,8 +235,10 @@ public class LinkedBlockingQueue<E> extends AbstractQueue<E>
         // assert takeLock.isHeldByCurrentThread();
         // assert head.item == null;
         Node<E> h = head;
+        // 根据head指针找到队列的第一个元素head.next
         Node<E> first = h.next;
-        h.next = h; // help GC
+        h.next = h; // help GC，h原本指向head节点，head指向first后，原头节点的地址没有引用了————h指向新的头节点
+        // 接上一行代码，h = null;可以吗？————可以啊，为什么不呢？
         head = first;
         E x = first.item;
         first.item = null;
@@ -260,6 +272,8 @@ public class LinkedBlockingQueue<E> extends AbstractQueue<E>
     /**
      * Creates a {@code LinkedBlockingQueue} with a capacity of
      * {@link Integer#MAX_VALUE}.
+     *
+     * 默认有界队列，容量为2^31-1
      */
     public LinkedBlockingQueue() {
         this(Integer.MAX_VALUE);
@@ -337,6 +351,7 @@ public class LinkedBlockingQueue<E> extends AbstractQueue<E>
     }
 
     /**
+     * 阻塞式入队
      * Inserts the specified element at the tail of this queue, waiting if
      * necessary for space to become available.
      *
@@ -368,11 +383,18 @@ public class LinkedBlockingQueue<E> extends AbstractQueue<E>
             enqueue(node);
             // 先get后incr，所以c表示入队列前的元素个数
             c = count.getAndIncrement();
+            // 为什么再次唤起入队呢？————notFull.await执行后释放锁，其他线程进来，导致notFull条件队列中很多任务被阻塞
+            // 这里判断还有空间的话唤起任务继续入队，提高性能
+            // fixme 不对啊，加锁了，如果容量没有满，那还是能正常进行入队的，没有必要再次唤起啊，毕竟出队时也会唤起入队任务的
+            // https://stackoverflow.com/questions/63702223/why-does-linkedblockingqueueput-need-notfull-signal
             if (c + 1 < capacity)
+                // 再次唤起入队任务
                 notFull.signal();
         } finally {
             putLock.unlock();
         }
+        // 只有如对操作，下边的if中唤起语句不会被执行，除过第一次外，只是多了若干次空的唤起动作
+        // 如果入队、出队都有的情况下，出队会在take的try模块中执行，用不上下边的if语句中的唤起
         if (c == 0)
             // 入队列前元素个数为0，执行enqueue后，一定大于0，所以唤起“队列非空”条件等待队列，如果队列非空，执行出队列操作
             signalNotEmpty();
@@ -464,8 +486,10 @@ public class LinkedBlockingQueue<E> extends AbstractQueue<E>
                 notEmpty.await();
             }
             x = dequeue();
+            // 出队前count
             c = count.getAndDecrement();
             if (c > 1)
+                // 既然都唤起一条任务了，为什么不都唤起呢？
                 notEmpty.signal();
         } finally {
             takeLock.unlock();
