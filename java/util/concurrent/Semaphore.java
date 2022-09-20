@@ -152,6 +152,8 @@ import java.util.concurrent.locks.AbstractQueuedSynchronizer;
  *
  * @since 1.5
  * @author Doug Lea
+ *
+ * 信号量
  */
 public class Semaphore implements java.io.Serializable {
     private static final long serialVersionUID = -3222578661600680210L;
@@ -160,13 +162,14 @@ public class Semaphore implements java.io.Serializable {
 
     /**
      * Synchronization implementation for semaphore.  Uses AQS state
-     * to represent permits. Subclassed into fair and nonfair
+     * to represent(代表) permits. Subclassed into fair and non-fair
      * versions.
      */
     abstract static class Sync extends AbstractQueuedSynchronizer {
         private static final long serialVersionUID = 1192457210091910933L;
 
         Sync(int permits) {
+            // AQS的state
             setState(permits);
         }
 
@@ -174,12 +177,17 @@ public class Semaphore implements java.io.Serializable {
             return getState();
         }
 
+        /**
+         * 获取一定数量的许可证
+         */
         final int nonfairTryAcquireShared(int acquires) {
+            // 相当于while(true)
             for (;;) {
                 int available = getState();
+                // 剩余可用的许可证数量
                 int remaining = available - acquires;
-                if (remaining < 0 ||
-                    compareAndSetState(available, remaining))
+                // 阻塞
+                if (remaining < 0 || compareAndSetState(available, remaining))
                     return remaining;
             }
         }
@@ -241,13 +249,13 @@ public class Semaphore implements java.io.Serializable {
         }
 
         protected int tryAcquireShared(int acquires) {
+            // 等价while(true)，区别是指令少
             for (;;) {
                 if (hasQueuedPredecessors())
                     return -1;
                 int available = getState();
                 int remaining = available - acquires;
-                if (remaining < 0 ||
-                    compareAndSetState(available, remaining))
+                if (remaining < 0 || compareAndSetState(available, remaining))
                     return remaining;
             }
         }

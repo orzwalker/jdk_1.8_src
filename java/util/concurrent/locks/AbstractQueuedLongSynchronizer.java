@@ -760,6 +760,7 @@ public abstract class AbstractQueuedLongSynchronizer
         final Node node = addWaiter(Node.SHARED);
         boolean failed = true;
         try {
+            // while(true)
             for (;;) {
                 final Node p = node.predecessor();
                 if (p == head) {
@@ -1079,6 +1080,7 @@ public abstract class AbstractQueuedLongSynchronizer
         if (Thread.interrupted())
             throw new InterruptedException();
         if (tryAcquireShared(arg) < 0)
+            // 核心方法
             doAcquireSharedInterruptibly(arg);
     }
 
