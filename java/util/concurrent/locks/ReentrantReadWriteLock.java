@@ -377,6 +377,9 @@ public class ReentrantReadWriteLock
             return free;
         }
 
+        /**
+         * 独占方式，尝试获取资源
+         */
         protected final boolean tryAcquire(int acquires) {
             /*
              * Walkthrough:
@@ -408,6 +411,7 @@ public class ReentrantReadWriteLock
             setExclusiveOwnerThread(current);
             return true;
         }
+
 
         protected final boolean tryReleaseShared(int unused) {
             Thread current = Thread.currentThread();
@@ -445,6 +449,9 @@ public class ReentrantReadWriteLock
                 "attempt to unlock read lock, not locked by current thread");
         }
 
+        /**
+         * 共享方式，尝试获取资源
+         */
         protected final int tryAcquireShared(int unused) {
             /*
              * Walkthrough:

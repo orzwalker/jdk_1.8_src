@@ -147,7 +147,7 @@ public class ReentrantLock implements Lock, java.io.Serializable {
 
         protected final boolean tryRelease(int releases) {
             // 解锁时读写volatile修饰的state
-            // 根据Happens-Before规则，一个volatile类型的变量的写操作 Happens-Before 读操作----T1线程的解锁 Happens T1线程的加锁
+            // 根据Happens-Before规则，一个volatile类型的变量的写操作 Happens-Before 读操作----T1线程的解锁 Happens T2线程的加锁
             // 因为state在jvm中只有一个
             int c = getState() - releases;
             if (Thread.currentThread() != getExclusiveOwnerThread())
@@ -155,8 +155,10 @@ public class ReentrantLock implements Lock, java.io.Serializable {
             boolean free = false;
             if (c == 0) {
                 free = true;
+                // 当前线程不再独占资源
                 setExclusiveOwnerThread(null);
             }
+            // 可重入锁释放
             setState(c);
             return free;
         }
@@ -228,6 +230,8 @@ public class ReentrantLock implements Lock, java.io.Serializable {
         }
 
         /**
+         * 独占方式，尝试获取资源
+         *
          * Fair version of tryAcquire.  Don't grant access unless
          * recursive call or no waiters or is first.
          */
@@ -238,11 +242,14 @@ public class ReentrantLock implements Lock, java.io.Serializable {
             if (c == 0) {
                 if (!hasQueuedPredecessors() &&
                     compareAndSetState(0, acquires)) {
+                    // 当前线程独占资源
                     setExclusiveOwnerThread(current);
                     return true;
                 }
             }
+            // 当前线程就是加锁的线程
             else if (current == getExclusiveOwnerThread()) {
+                // 可重入，每重入一次，state加一  ---->  获取多少次，就需要释放多少次
                 int nextc = c + acquires;
                 if (nextc < 0)
                     throw new Error("Maximum lock count exceeded");

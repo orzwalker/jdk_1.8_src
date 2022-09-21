@@ -285,6 +285,10 @@ import sun.misc.Unsafe;
  *
  * @since 1.5
  * @author Doug Lea
+ *
+ * 抽象队列同步器，AQS
+ * https://www.cnblogs.com/waterystone/p/4920797.html
+ * https://blog.csdn.net/oldshaui/article/details/102692646
  */
 public abstract class AbstractQueuedSynchronizer
     extends AbstractOwnableSynchronizer
@@ -428,6 +432,8 @@ public abstract class AbstractQueuedSynchronizer
          * The field is initialized to 0 for normal sync nodes, and
          * CONDITION for condition nodes.  It is modified using CAS
          * (or when possible, unconditional volatile writes).
+         *
+         * 当前节点的等待状态
          */
         volatile int waitStatus;
 
@@ -529,6 +535,7 @@ public abstract class AbstractQueuedSynchronizer
 
     /**
      * The synchronization state.
+     * 表示加锁的状态
      */
     private volatile int state;
 
@@ -551,6 +558,7 @@ public abstract class AbstractQueuedSynchronizer
     }
 
     /**
+     * 原子操作
      * Atomically sets synchronization state to the given updated
      * value if the current state value equals the expected value.
      * This operation has memory semantics of a {@code volatile} read
@@ -1047,6 +1055,8 @@ public abstract class AbstractQueuedSynchronizer
     // Main exported methods
 
     /**
+     * 独占方式尝试获取锁，返回true/false
+     *
      * Attempts to acquire in exclusive mode. This method should query
      * if the state of the object permits it to be acquired in the
      * exclusive mode, and if so to acquire it.
@@ -1077,6 +1087,8 @@ public abstract class AbstractQueuedSynchronizer
     }
 
     /**
+     * 独占方式尝试释放锁
+     *
      * Attempts to set the state to reflect a release in exclusive
      * mode.
      *
@@ -1103,6 +1115,8 @@ public abstract class AbstractQueuedSynchronizer
     }
 
     /**
+     * 尝试共享方式获取资源
+     *
      * Attempts to acquire in shared mode. This method should query if
      * the state of the object permits it to be acquired in the shared
      * mode, and if so to acquire it.
@@ -1119,7 +1133,10 @@ public abstract class AbstractQueuedSynchronizer
      *        passed to an acquire method, or is the value saved on entry
      *        to a condition wait.  The value is otherwise uninterpreted
      *        and can represent anything you like.
-     * @return a negative value on failure; zero if acquisition in shared
+     *
+     * @return 负数表示失败；0表示成功，但没有剩余可用资源；正数表示成功，且有剩余资源
+     *
+     *         a negative value on failure; zero if acquisition in shared
      *         mode succeeded but no subsequent shared-mode acquire can
      *         succeed; and a positive value if acquisition in shared
      *         mode succeeded and subsequent shared-mode acquires might
@@ -1139,6 +1156,7 @@ public abstract class AbstractQueuedSynchronizer
     }
 
     /**
+     * 尝试共享方式释放锁 true/false
      * Attempts to set the state to reflect a release in shared mode.
      *
      * <p>This method is always invoked by the thread performing release.
@@ -1164,6 +1182,8 @@ public abstract class AbstractQueuedSynchronizer
     }
 
     /**
+     * 该线程是否正在独占资源，只有用到condition才需要实现该方法
+     *
      * Returns {@code true} if synchronization is held exclusively with
      * respect to the current (calling) thread.  This method is invoked
      * upon each call to a non-waiting {@link ConditionObject} method.
