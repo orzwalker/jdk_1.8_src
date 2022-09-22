@@ -523,6 +523,8 @@ public abstract class AbstractQueuedSynchronizer
         }
 
         Node() {    // Used to establish initial head or SHARED marker
+            // thread = null;
+            // ws = 0;
         }
 
         Node(Thread thread, Node mode) {     // Used by addWaiter
@@ -653,7 +655,7 @@ public abstract class AbstractQueuedSynchronizer
         // Try the fast path of enq; backup to full enq on failure
         // 前任节点，有可能为空====队列为空
         Node pred = tail;
-        // 队列为空
+        // 队列不为空
         if (pred != null) {
             // 为什么不尝试获取锁，而是先入队，后尝试获取锁？----将最有可能成功执行的代码写在最常用的调用处
             // 将原为节点设置为自己的前驱节点，单向链表
@@ -668,8 +670,8 @@ public abstract class AbstractQueuedSynchronizer
         }
 
         // 采用自旋的方式入队
-        // 1、pred==tail为空，队列为空
-        // 2、CAS失败，有线程竞争
+        // 1、pred==tail为空----队列为空
+        // 2、CAS失败----有线程竞争
         enq(node);
         return node;
     }
@@ -867,6 +869,8 @@ public abstract class AbstractQueuedSynchronizer
      */
     private static boolean shouldParkAfterFailedAcquire(Node pred, Node node) {
         // node.ws == 0
+
+        // 前驱节点的ws
         int ws = pred.waitStatus;
         // 前驱节点的waitStatus=-1，前驱节点状态正确，可以挂起
         if (ws == Node.SIGNAL)
@@ -956,6 +960,8 @@ public abstract class AbstractQueuedSynchronizer
                     setHead(node);
                     p.next = null; // help GC
                     failed = false;
+                    // 这个if条件不满足的话，一直会自旋，不会退出
+                    // 除非挂起成功
                     return interrupted;
                 }
 
@@ -1380,7 +1386,7 @@ public abstract class AbstractQueuedSynchronizer
         if (tryRelease(arg)) {
             Node h = head;
             if (h != null && h.waitStatus != 0)
-                // 唤醒后继节点下次讷航
+                // 唤醒后继节点
                 unparkSuccessor(h);
             return true;
         }
