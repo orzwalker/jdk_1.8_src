@@ -225,12 +225,16 @@ public class ReentrantLock implements Lock, java.io.Serializable {
     static final class FairSync extends Sync {
         private static final long serialVersionUID = -3000897897090466540L;
 
+        // 获取锁
         final void lock() {
+            // 调用父类的AQS
             acquire(1);
         }
 
         /**
          * 独占方式，尝试获取资源
+         *
+         * 返回true：1、没有其他线程等待锁；2、当前线程本来就持有锁，重入锁
          *
          * Fair version of tryAcquire.  Don't grant access unless
          * recursive call or no waiters or is first.
@@ -239,12 +243,17 @@ public class ReentrantLock implements Lock, java.io.Serializable {
             final Thread current = Thread.currentThread();
             // 加锁时读写volatile修饰的state
             int c = getState();
+            // state=0表示没有其他线程持有锁
             if (c == 0) {
+                // predecessor：前任
+                // 因为是公平锁，所以看下是否其他线程在等待队列中等着
                 if (!hasQueuedPredecessors() &&
+                    // 没有线程在等待，CAS尝试，成功就拿到了锁
+                        // CAS失败表示，有其他线程抢先了
                     compareAndSetState(0, acquires)) {
-                    // 当前线程独占资源
-                    setExclusiveOwnerThread(current);
-                    return true;
+                        // 当前线程独占资源
+                        setExclusiveOwnerThread(current);
+                        return true;
                 }
             }
             // 当前线程就是加锁的线程
@@ -256,6 +265,7 @@ public class ReentrantLock implements Lock, java.io.Serializable {
                 setState(nextc);
                 return true;
             }
+            // T1线程已加锁，T1线程进来后，state！=0，并且加锁线程不是当前线程====加锁失败
             return false;
         }
     }

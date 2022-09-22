@@ -60,6 +60,12 @@ public abstract class AbstractOwnableSynchronizer
 
     /**
      * The current owner of exclusive mode synchronization.
+     * 表示当前持有独占锁的线程
+     * 因为锁可以重入，所以需要判断是否是同一个线程
+     * else if (current == getExclusiveOwnerThread()) {
+     *     // 可重入，每重入一次，state加一  ---->  获取多少次，就需要释放多少次
+     *     int nextc = c + acquires;
+     * }
      */
     private transient Thread exclusiveOwnerThread;
 
