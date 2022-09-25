@@ -38,6 +38,10 @@ import java.util.concurrent.TimeUnit;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Date;
+
+import com.sun.tools.javac.comp.Todo;
+import com.sun.xml.internal.bind.v2.TODO;
+import com.sun.xml.internal.fastinfoset.tools.FI_SAX_Or_XML_SAX_SAXEvent;
 import sun.misc.Unsafe;
 
 /**
@@ -663,6 +667,7 @@ public abstract class AbstractQueuedSynchronizer
             // CAS成功，则tail指向当前节点 tail == node
             if (compareAndSetTail(pred, node)) {
                 // 原尾节点后继节点指向当前节点，形成了双向链表
+                // 先赋值前驱指针，后赋值后继指针，存在并发
                 pred.next = node;
                 // 节点已入队，返回
                 return node;
@@ -678,6 +683,7 @@ public abstract class AbstractQueuedSynchronizer
 
     /**
      * head表示当前持有锁的节点
+     * 注意 thread==null
      *
      * Sets head of queue to be node, thus dequeuing. Called only by
      * acquire methods.  Also nulls out unused fields for sake of GC
@@ -872,6 +878,7 @@ public abstract class AbstractQueuedSynchronizer
 
         // 前驱节点的ws
         int ws = pred.waitStatus;
+        // 当前节点入队后，必须将前驱结点的ws设置为-1，这样前驱结点的线程在unlock时就能唤醒当前节点的额线程了
         // 前驱节点的waitStatus=-1，前驱节点状态正确，可以挂起
         if (ws == Node.SIGNAL)
             /*
@@ -956,6 +963,7 @@ public abstract class AbstractQueuedSynchronizer
                 final Node p = node.predecessor();
                 // 前驱是head====当前节点进入了阻塞队列，并且是队列的第一个元素
                 // 当前节点去尝试竞争一下锁
+                // 只有第一个节点才会去尝试加锁====公平
                 if (p == head && tryAcquire(arg)) {
                     setHead(node);
                     p.next = null; // help GC
@@ -1634,16 +1642,28 @@ public abstract class AbstractQueuedSynchronizer
      *         current thread, and {@code false} if the current thread
      *         is at the head of the queue or the queue is empty
      * @since 1.7
+     *
+     * 等待队列中是否有更早的等待线程
      */
     public final boolean hasQueuedPredecessors() {
         // The correctness of this depends on head being initialized
         // before tail and on head.next being accurate if the current
         // thread is first in queue.
+        // 这样做的正确性取决于 head 在 tail 之前被初始化，并且如果当前线程在队列中，head.next 是否准确
         Node t = tail; // Read fields in reverse initialization order
         Node h = head;
         Node s;
+        // 排除空队列
         return h != t &&
-            ((s = h.next) == null || s.thread != Thread.currentThread());
+                // java.util.concurrent.locks.AbstractQueuedSynchronizer.addWaiter
+                // 新增节点并构建链表过程中:
+                // 1、先执行node.prev = pred;
+                // 2、CAS tail
+                // 3、2成功后才执行pred.next=node;构成双向链表
+                // 两个操作存在并发，所以h.next可能还是null，但实际上并发的节点也需要排队
+            ((s = h.next) == null
+                    // 第一个节点线程不是当前线程，需要排队
+                    || s.thread != Thread.currentThread());
     }
 
 
