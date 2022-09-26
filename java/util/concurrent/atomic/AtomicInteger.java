@@ -155,8 +155,11 @@ public class AtomicInteger extends Number implements java.io.Serializable {
      * @return the previous value
      */
     public final int getAndIncrement() {
+        // while() + CAS
+        // 无锁、乐观锁、自旋锁、轻量级锁
         return unsafe.getAndAddInt(this, valueOffset, 1);
     }
+
 
     /**
      * Atomically decrements by one the current value.
@@ -183,6 +186,8 @@ public class AtomicInteger extends Number implements java.io.Serializable {
      * @return the updated value
      */
     public final int incrementAndGet() {
+        // 原子性保障  while+CAS
+        // 有点像乐观锁的思想
         return unsafe.getAndAddInt(this, valueOffset, 1) + 1;
     }
 

@@ -728,7 +728,7 @@ public abstract class AbstractQueuedSynchronizer
             // 从后往前找，找到ws<=0的后继节点
             // FIXME: 2022/9/22 为什么不从当前head往后找呢？找到第一个就完事了
             //  ====找后继节点，如果过程中有enq操作，并且t.next=node还没执行完成，那么就遍历不到node这个节点==断链
-            //  从tail往前遍历，一定是个完整的链表关系====因为tail是CAS操作的
+            //  从tail往前遍历，一定是个完整的链表关系====因为tail赋值是CAS操作的
             for (Node t = tail; t != null && t != node; t = t.prev)
                 if (t.waitStatus <= 0)
                     s = t;
@@ -1389,6 +1389,8 @@ public abstract class AbstractQueuedSynchronizer
      *        {@link #tryRelease} but is otherwise uninterpreted and
      *        can represent anything you like.
      * @return the value returned from {@link #tryRelease}
+     *
+     * 可以看出，公平锁和非公平锁的解锁方法都是同一个，都是按照公平的方式去解锁的
      */
     public final boolean release(int arg) {
         // state减到0，删除独占锁线程
@@ -1396,7 +1398,7 @@ public abstract class AbstractQueuedSynchronizer
             Node h = head;
             // h.ws=-1
             if (h != null && h.waitStatus != 0)
-                // 唤醒后继节点
+                // 唤醒后继节点，公平唤醒
                 unparkSuccessor(h);
             return true;
         }
