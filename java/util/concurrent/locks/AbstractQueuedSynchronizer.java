@@ -710,6 +710,7 @@ public abstract class AbstractQueuedSynchronizer
          * to clear in anticipation of signalling.  It is OK if this
          * fails or if status is changed by waiting thread.
          */
+        // node是head
         int ws = node.waitStatus;
         if (ws < 0)
             compareAndSetWaitStatus(node, ws, 0);
@@ -727,7 +728,7 @@ public abstract class AbstractQueuedSynchronizer
             // 从后往前找，找到ws<=0的后继节点
             // FIXME: 2022/9/22 为什么不从当前head往后找呢？找到第一个就完事了
             //  ====找后继节点，如果过程中有enq操作，并且t.next=node还没执行完成，那么就遍历不到node这个节点==断链
-            //  从tail往前遍历，一定是个完整的链表关系
+            //  从tail往前遍历，一定是个完整的链表关系====因为tail是CAS操作的
             for (Node t = tail; t != null && t != node; t = t.prev)
                 if (t.waitStatus <= 0)
                     s = t;
@@ -1393,6 +1394,7 @@ public abstract class AbstractQueuedSynchronizer
         // state减到0，删除独占锁线程
         if (tryRelease(arg)) {
             Node h = head;
+            // h.ws=-1
             if (h != null && h.waitStatus != 0)
                 // 唤醒后继节点
                 unparkSuccessor(h);

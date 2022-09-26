@@ -133,6 +133,7 @@ public class ReentrantLock implements Lock, java.io.Serializable {
             int c = getState();
             // state=0
             if (c == 0) {
+                // 相比公平锁，不需要判断是否需要排队，所以是非公平
                 if (compareAndSetState(0, acquires)) {
                     setExclusiveOwnerThread(current);
                     return true;
