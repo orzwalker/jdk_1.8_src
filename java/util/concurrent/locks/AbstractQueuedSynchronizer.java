@@ -1322,7 +1322,7 @@ public abstract class AbstractQueuedSynchronizer
     public final void acquire(int arg) {
         // 调用子类的tryAcquire()方法
         // 如果加锁成功，结束
-        // 如果加锁失败，则将当前线程入队 acquireQueued()
+        // 如果加锁失败，则将当前线程入队addWaiter，并判断是否需要唤起阻塞线程，acquireQueued()
         if (!tryAcquire(arg) &&
                 // 尝试获取锁失败，当前线程挂起，入队
                 // addWaiter----创建节点，并入队列
@@ -1664,9 +1664,9 @@ public abstract class AbstractQueuedSynchronizer
                 // 1、先执行node.prev = pred;
                 // 2、CAS tail
                 // 3、2成功后才执行pred.next=node;构成双向链表
-                // 两个操作存在并发，所以h.next可能还是null，但实际上并发的节点也需要排队
+                // 两个操作存在并发，所以pred.next可能还是null，但实际上并发的节点也需要排队
             ((s = h.next) == null
-                    // 第一个节点线程不是当前线程，需要排队
+                    // 第一个节点线程不是当前线程，说明有排队
                     || s.thread != Thread.currentThread());
     }
 
