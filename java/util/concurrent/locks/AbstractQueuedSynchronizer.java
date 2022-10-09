@@ -755,13 +755,18 @@ public abstract class AbstractQueuedSynchronizer
          * unparkSuccessor, we need to know if CAS to reset status
          * fails, if so rechecking.
          */
+        // 自旋
         for (;;) {
             Node h = head;
+            // 队列不为空
             if (h != null && h != tail) {
                 int ws = h.waitStatus;
                 if (ws == Node.SIGNAL) {
+                    // head.ws==-1表示后继节点的线程需要被唤起
                     if (!compareAndSetWaitStatus(h, Node.SIGNAL, 0))
+                        // 如果CAS失败，则退出自旋
                         continue;            // loop to recheck cases
+                    // 唤起后继节点线程，也是从队尾向前遍历找到最靠前的节点
                     unparkSuccessor(h);
                 }
                 else if (ws == 0 &&
@@ -1085,28 +1090,40 @@ public abstract class AbstractQueuedSynchronizer
     }
 
     /**
+     * 创建节点
+     * 再次尝试获取锁
+     * 是否需要加入到队列中
+     *
      * Acquires in shared interruptible mode.
      * @param arg the acquire argument
      */
     private void doAcquireSharedInterruptibly(int arg)
         throws InterruptedException {
+        // 创建共享节点并入队
         final Node node = addWaiter(Node.SHARED);
         boolean failed = true;
         try {
             for (;;) {
+                // 当前节点的前驱结点
                 final Node p = node.predecessor();
                 if (p == head) {
+                    // 前驱节点是head，尝试再次获取一次锁
                     int r = tryAcquireShared(arg);
                     if (r >= 0) {
                         setHeadAndPropagate(node, r);
                         p.next = null; // help GC
                         failed = false;
+                        // 获取锁成功，自旋结束
                         return;
                     }
                 }
+                // 是否需要挂起当前节点的线程
                 if (shouldParkAfterFailedAcquire(p, node) &&
-                    parkAndCheckInterrupt())
+                        // 挂起当前线程，WAITING状态
+                        parkAndCheckInterrupt()) {
+                    // 判断是否属于中断状态，是的话抛出异常
                     throw new InterruptedException();
+                }
             }
         } finally {
             if (failed)
@@ -1433,12 +1450,16 @@ public abstract class AbstractQueuedSynchronizer
      * otherwise uninterpreted and can represent anything
      * you like.
      * @throws InterruptedException if the current thread is interrupted
+     *
+     * 尝试获取共享锁
      */
     public final void acquireSharedInterruptibly(int arg)
             throws InterruptedException {
         if (Thread.interrupted())
             throw new InterruptedException();
+        // state==0时返回1，否则返回-1
         if (tryAcquireShared(arg) < 0)
+            // state!=0，创建节点并判断是否需要入队，以及入队后的挂起操作park
             doAcquireSharedInterruptibly(arg);
     }
 
@@ -1463,6 +1484,7 @@ public abstract class AbstractQueuedSynchronizer
         if (Thread.interrupted())
             throw new InterruptedException();
         return tryAcquireShared(arg) >= 0 ||
+                // 第一个条件失败，即获取资源失败
             doAcquireSharedNanos(arg, nanosTimeout);
     }
 
@@ -1474,9 +1496,14 @@ public abstract class AbstractQueuedSynchronizer
      *        {@link #tryReleaseShared} but is otherwise uninterpreted
      *        and can represent anything you like.
      * @return the value returned from {@link #tryReleaseShared}
+     *
+     * 共享模式下释放锁
+     * 只有当state==0时，才会唤起后继节点的线程
      */
     public final boolean releaseShared(int arg) {
         if (tryReleaseShared(arg)) {
+            // state==0
+            // 释放锁成功，唤起后继节点的线程
             doReleaseShared();
             return true;
         }

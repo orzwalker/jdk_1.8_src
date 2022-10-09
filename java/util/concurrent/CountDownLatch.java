@@ -173,6 +173,11 @@ public class CountDownLatch {
             return (getState() == 0) ? 1 : -1;
         }
 
+        /**
+         * 释放锁
+         * 只判断state是否等于0
+         * 减去releases后state==0时，返回TRUE，表示释放锁成功
+         */
         protected boolean tryReleaseShared(int releases) {
             // Decrement count; signal when transition to zero
             for (;;) {
@@ -297,6 +302,8 @@ public class CountDownLatch {
      * <p>This method is typically used for debugging and testing purposes.
      *
      * @return the current count
+     *
+     * 当前state值，线程间可见
      */
     public long getCount() {
         return sync.getCount();
