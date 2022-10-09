@@ -186,12 +186,16 @@ public class Semaphore implements java.io.Serializable {
                 int available = getState();
                 // 剩余可用的许可证数量
                 int remaining = available - acquires;
-                // 阻塞
+                // 许可证数量是负数 或者CAS成功，返回剩余的可用数量
                 if (remaining < 0 || compareAndSetState(available, remaining))
                     return remaining;
             }
         }
 
+        /**
+         * 公平和非公平信用量都使用了同样的释放资源方法
+         * 并且是公平释放====同ReentrantLock
+         */
         protected final boolean tryReleaseShared(int releases) {
             for (;;) {
                 int current = getState();
@@ -251,6 +255,7 @@ public class Semaphore implements java.io.Serializable {
         protected int tryAcquireShared(int acquires) {
             // 等价while(true)，区别是指令少
             for (;;) {
+                // 是否有排队节点
                 if (hasQueuedPredecessors())
                     return -1;
                 int available = getState();

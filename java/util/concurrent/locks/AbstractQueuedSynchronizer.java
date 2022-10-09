@@ -699,6 +699,7 @@ public abstract class AbstractQueuedSynchronizer
 
     /**
      * 唤醒后继节点
+     * 公平唤起
      *
      * Wakes up node's successor, if one exists.
      *
