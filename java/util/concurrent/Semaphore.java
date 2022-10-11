@@ -187,6 +187,8 @@ public class Semaphore implements java.io.Serializable {
                 // 剩余可用的许可证数量
                 int remaining = available - acquires;
                 // 许可证数量是负数 或者CAS成功，返回剩余的可用数量
+                // 剩余的permit小于0，直接返回，表示获取资源失败
+                // 剩余的permit大于等于0，才会CAS更新state，表示获取资源成功
                 if (remaining < 0 || compareAndSetState(available, remaining))
                     return remaining;
             }
