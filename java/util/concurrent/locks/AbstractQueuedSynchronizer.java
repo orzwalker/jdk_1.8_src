@@ -1878,8 +1878,10 @@ public abstract class AbstractQueuedSynchronizer
         int ws = p.waitStatus;
         // ws >0,说明node.prev取消了等待锁，直接唤醒node.thread
         // ws <=0,执行CAS更新node.prev.ws==-1，失败时唤醒node.thread
+        // 也就是说unlock后不会再唤起node.thread了，所以主动唤起
+        // 换句话说，如果转移成功后，这个节点的prev.ws==-1正常状态，那么就等unlock后唤起了 ====不会出现unlock结束时unpark
         if (ws > 0 || !compareAndSetWaitStatus(p, ws, Node.SIGNAL))
-            // 唤醒
+            // 线程A唤醒线程B，注意一定是不同的线程
             LockSupport.unpark(node.thread);
         // node成功转移
         return true;
@@ -2163,6 +2165,7 @@ public abstract class AbstractQueuedSynchronizer
          */
         public final void signal() {
             // 是否持有锁
+            // 执行signal必须持有独占锁
             if (!isHeldExclusively())
                 throw new IllegalMonitorStateException();
             Node first = firstWaiter;
@@ -2226,6 +2229,10 @@ public abstract class AbstractQueuedSynchronizer
          * Checks for interrupt, returning THROW_IE if interrupted
          * before signalled, REINTERRUPT if after signalled, or
          * 0 if not interrupted.
+         *
+         * signal前中断，返回THROW_IE
+         * signal后中断，返回REINTERRUPT
+         * 没有中断，返回0
          */
         private int checkInterruptWhileWaiting(Node node) {
             return Thread.interrupted() ?
@@ -2281,6 +2288,7 @@ public abstract class AbstractQueuedSynchronizer
                 LockSupport.park(this);
                 // 线程开始阻塞到这里WAITING状态，不再继续往下执行
                 // 线程唤醒后，开始在这执行
+                // 检查线程挂起期间是否发生了中断
                 if ((interruptMode = checkInterruptWhileWaiting(node)) != 0)
                     break;
             }
