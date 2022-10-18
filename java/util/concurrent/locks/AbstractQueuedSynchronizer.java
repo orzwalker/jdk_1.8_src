@@ -746,6 +746,8 @@ public abstract class AbstractQueuedSynchronizer
      * Release action for shared mode -- signals successor and ensures
      * propagation. (Note: For exclusive mode, release just amounts
      * to calling unparkSuccessor of head if it needs signal.)
+     *
+     * 调用该方法时，state==0
      */
     private void doReleaseShared() {
         /*
@@ -762,7 +764,9 @@ public abstract class AbstractQueuedSynchronizer
         // 自旋
         for (;;) {
             Node h = head;
-            // 队列不为空
+            // h==null, 队列为空
+            // h==tail, 队列中就一个head节点(可能是初始化的head，也可能是setHead设置的节点)
+            // 保证阻塞队列不为空
             if (h != null && h != tail) {
                 int ws = h.waitStatus;
                 if (ws == Node.SIGNAL) {
@@ -1128,6 +1132,7 @@ public abstract class AbstractQueuedSynchronizer
                     // 前驱节点是head，尝试再次获取一次锁
                     int r = tryAcquireShared(arg);
                     if (r >= 0) {
+                        // 占用head并唤醒阻塞队列中的其他线程
                         setHeadAndPropagate(node, r);
                         p.next = null; // help GC
                         failed = false;
