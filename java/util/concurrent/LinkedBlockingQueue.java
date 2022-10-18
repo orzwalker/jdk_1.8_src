@@ -88,6 +88,8 @@ import java.util.function.Consumer;
  * 2、只要保证count的原子性，就可以使用双锁
  * https://blog.csdn.net/icepigeon314/article/details/93792519
  *
+ * 3、推荐文章
+ * https://javadoop.com/post/java-concurrent-queue#toc_4
  *
  */
 public class LinkedBlockingQueue<E> extends AbstractQueue<E>
@@ -216,6 +218,8 @@ public class LinkedBlockingQueue<E> extends AbstractQueue<E>
      * Links node at end of queue.
      *
      * @param node the node
+     *
+     * 不存在并发问题，因为put时先获取锁了
      */
     private void enqueue(Node<E> node) {
         // assert putLock.isHeldByCurrentThread();

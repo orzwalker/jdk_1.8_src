@@ -90,7 +90,10 @@ public class ArrayBlockingQueue<E> extends AbstractQueue<E>
      */
     private static final long serialVersionUID = -817911632652898426L;
 
-    /** The queued items */
+    /**
+     * The queued items
+     *  用于存放元素的数组
+     **/
     final Object[] items;
 
     /** items index for next take, poll, peek or remove */
@@ -101,6 +104,7 @@ public class ArrayBlockingQueue<E> extends AbstractQueue<E>
 
     /**
      * Number of elements in the queue
+     * 队列中的元素数量
      * count不是原子类，所以需要单锁
      * 理论上改成原子类后，就可以使用双锁了
      * */
