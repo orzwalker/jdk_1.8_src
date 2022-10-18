@@ -792,6 +792,7 @@ public abstract class AbstractQueuedSynchronizer
      */
     private void setHeadAndPropagate(Node node, int propagate) {
         Node h = head; // Record old head for check below
+        // node--被唤醒的线程所在节点，设置为head
         setHead(node);
         /*
          * Try to signal next queued node if:
@@ -809,8 +810,10 @@ public abstract class AbstractQueuedSynchronizer
          * racing acquires/releases, so most need signals now or soon
          * anyway.
          */
+        // 唤醒当前节点之后的节点
         if (propagate > 0 || h == null || h.waitStatus < 0 ||
             (h = head) == null || h.waitStatus < 0) {
+            // s----
             Node s = node.next;
             if (s == null || s.isShared())
                 doReleaseShared();
@@ -1135,6 +1138,8 @@ public abstract class AbstractQueuedSynchronizer
                 // 是否需要挂起当前节点的线程
                 if (shouldParkAfterFailedAcquire(p, node) &&
                         // 挂起当前线程，WAITING状态
+
+                        // 唤醒后从这个方法返回
                         parkAndCheckInterrupt()) {
                     // 判断是否属于中断状态，是的话抛出异常
                     throw new InterruptedException();
