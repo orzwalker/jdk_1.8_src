@@ -133,6 +133,9 @@ import java.util.Collection;
  *
  * @since 1.5
  * @author Doug Lea
+ *
+ *
+ * 基本功能：能提交任务、能获取执行结果、能关闭线程池
  */
 public interface ExecutorService extends Executor {
 
@@ -153,6 +156,7 @@ public interface ExecutorService extends Executor {
      *         or the security manager's {@code checkAccess} method
      *         denies access.
      */
+    // 关闭线程池，已提交的任务继续执行，不接受提交新任务
     void shutdown();
 
     /**
@@ -178,6 +182,10 @@ public interface ExecutorService extends Executor {
      *         or the security manager's {@code checkAccess} method
      *         denies access.
      */
+    /**
+     * 立刻停止正在执行的所有任务，不接受继续提交的任务
+     * @return
+     */
     List<Runnable> shutdownNow();
 
     /**
@@ -194,6 +202,7 @@ public interface ExecutorService extends Executor {
      *
      * @return {@code true} if all tasks have completed following shut down
      */
+    // shutdown执行后，所有的任务是否都完成了
     boolean isTerminated();
 
     /**
@@ -248,6 +257,7 @@ public interface ExecutorService extends Executor {
      *         scheduled for execution
      * @throws NullPointerException if the task is null
      */
+    // 提交一个Runnable任务，result作为返回值
     <T> Future<T> submit(Runnable task, T result);
 
     /**
@@ -284,6 +294,7 @@ public interface ExecutorService extends Executor {
      * @throws RejectedExecutionException if any task cannot be
      *         scheduled for execution
      */
+    // 执行所有任务，返回list
     <T> List<Future<T>> invokeAll(Collection<? extends Callable<T>> tasks)
         throws InterruptedException;
 
@@ -315,6 +326,7 @@ public interface ExecutorService extends Executor {
      * @throws RejectedExecutionException if any task cannot be scheduled
      *         for execution
      */
+    // 设置了超时时间
     <T> List<Future<T>> invokeAll(Collection<? extends Callable<T>> tasks,
                                   long timeout, TimeUnit unit)
         throws InterruptedException;
@@ -338,6 +350,7 @@ public interface ExecutorService extends Executor {
      * @throws RejectedExecutionException if tasks cannot be scheduled
      *         for execution
      */
+    // 只有其中一个任务执行结束了，就可以返回了
     <T> T invokeAny(Collection<? extends Callable<T>> tasks)
         throws InterruptedException, ExecutionException;
 

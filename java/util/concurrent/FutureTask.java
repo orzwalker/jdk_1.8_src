@@ -60,6 +60,12 @@ import java.util.concurrent.locks.LockSupport;
  * @author Doug Lea
  * @param <V> The result type returned by this FutureTask's {@code get} methods
  */
+
+/**
+ * 首先是一个任务Task
+ * 其次具有Future接口的语义----可以得到执行结果
+ * @param <V>
+ */
 public class FutureTask<V> implements RunnableFuture<V> {
     /*
      * Revision notes: This differs from previous versions of this

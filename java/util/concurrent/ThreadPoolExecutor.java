@@ -383,14 +383,26 @@ public class ThreadPoolExecutor extends AbstractExecutorService {
     private static final int CAPACITY   = (1 << COUNT_BITS) - 1;
 
     // runState is stored in the high-order bits
+    // 高三位存放线程池的状态
+    // 运算结果为 111跟29个0：111 00000000000000000000000000000
     private static final int RUNNING    = -1 << COUNT_BITS;
+    // 000 00000000000000000000000000000
+    // 不接受新的任务提交，但会继续处理等待队列中的任务
     private static final int SHUTDOWN   =  0 << COUNT_BITS;
+    // 001 00000000000000000000000000000
+    // 不接受新的任务提交，不再处理等待队列中的任务，中断正在执行任务的线程
     private static final int STOP       =  1 << COUNT_BITS;
+    // 010 00000000000000000000000000000
+    // 所有任务都销毁了
     private static final int TIDYING    =  2 << COUNT_BITS;
+    // 011 00000000000000000000000000000
+    // terminated()方法执行后的状态
     private static final int TERMINATED =  3 << COUNT_BITS;
 
     // Packing and unpacking ctl
+    // 线程池状态
     private static int runStateOf(int c)     { return c & ~CAPACITY; }
+    // 线程池线程数
     private static int workerCountOf(int c)  { return c & CAPACITY; }
     private static int ctlOf(int rs, int wc) { return rs | wc; }
 
@@ -591,6 +603,8 @@ public class ThreadPoolExecutor extends AbstractExecutorService {
      * the thread actually starts running tasks, we initialize lock
      * state to a negative value, and clear it upon start (in
      * runWorker).
+     *
+     * 线程池中做任务的线程
      */
     private final class Worker
         extends AbstractQueuedSynchronizer
@@ -602,11 +616,20 @@ public class ThreadPoolExecutor extends AbstractExecutorService {
          */
         private static final long serialVersionUID = 6138294804551838833L;
 
-        /** Thread this worker is running in.  Null if factory fails. */
+        /**
+         * Thread this worker is running in.  Null if factory fails.
+         * 真正的线程，干活的
+         **/
         final Thread thread;
-        /** Initial task to run.  Possibly null. */
+        /**
+         * Initial task to run.  Possibly null.
+         **/
         Runnable firstTask;
-        /** Per-thread task counter */
+        /**
+         * Per-thread task counter
+         * 线程完成的任务数
+         * 保证可见性
+         **/
         volatile long completedTasks;
 
         /**
@@ -614,8 +637,10 @@ public class ThreadPoolExecutor extends AbstractExecutorService {
          * @param firstTask the first task (null if none)
          */
         Worker(Runnable firstTask) {
+            // fixme 禁止中断
             setState(-1); // inhibit interrupts until runWorker
             this.firstTask = firstTask;
+            // 通过工厂创建一个新的线程
             this.thread = getThreadFactory().newThread(this);
         }
 
@@ -626,9 +651,13 @@ public class ThreadPoolExecutor extends AbstractExecutorService {
 
         // Lock methods
         //
-        // The value 0 represents the unlocked state.
-        // The value 1 represents the locked state.
+        // The value 0 represents(表示) the unlocked state.
+        // The value 1 represents(表示) the locked state.
 
+        /**
+         * true: lock
+         * false: unlock
+         */
         protected boolean isHeldExclusively() {
             return getState() != 0;
         }
@@ -1283,7 +1312,7 @@ public class ThreadPoolExecutor extends AbstractExecutorService {
      *        pool
      * @param keepAliveTime when the number of threads is greater than
      *        the core, this is the maximum time that excess idle threads
-     *        will wait for new tasks before terminating.
+     *        will wait for new tasks before terminating.----空闲线程的保活时间，超过core线程数的线程空闲时间大于这个时间，就给关闭掉
      * @param unit the time unit for the {@code keepAliveTime} argument
      * @param workQueue the queue to use for holding tasks before they are
      *        executed.  This queue will hold only the {@code Runnable}
@@ -1291,7 +1320,7 @@ public class ThreadPoolExecutor extends AbstractExecutorService {
      * @param threadFactory the factory to use when the executor
      *        creates a new thread
      * @param handler the handler to use when execution is blocked
-     *        because the thread bounds and queue capacities are reached
+     *        because the thread bounds and queue capacities are reached----线程池已满，但有新的任务提交时，应改采取什么策略
      * @throws IllegalArgumentException if one of the following holds:<br>
      *         {@code corePoolSize < 0}<br>
      *         {@code keepAliveTime < 0}<br>
@@ -1312,6 +1341,7 @@ public class ThreadPoolExecutor extends AbstractExecutorService {
             maximumPoolSize < corePoolSize ||
             keepAliveTime < 0)
             throw new IllegalArgumentException();
+        // 必传参数
         if (workQueue == null || threadFactory == null || handler == null)
             throw new NullPointerException();
         this.acc = System.getSecurityManager() == null ?
@@ -1364,10 +1394,17 @@ public class ThreadPoolExecutor extends AbstractExecutorService {
          */
         int c = ctl.get();
         if (workerCountOf(c) < corePoolSize) {
+            // 如果当前线程数小于core，则添加一个worker来执行任务
             if (addWorker(command, true))
+                // 结束
                 return;
             c = ctl.get();
         }
+
+        // 如果执行到这，要么当前线程数大于等于core，要么新增worker失败了
+
+
+        // 如果线程池是RUNNING状态，将任务添加到workQueue中
         if (isRunning(c) && workQueue.offer(command)) {
             int recheck = ctl.get();
             if (! isRunning(recheck) && remove(command))
@@ -1376,6 +1413,7 @@ public class ThreadPoolExecutor extends AbstractExecutorService {
                 addWorker(null, false);
         }
         else if (!addWorker(command, false))
+            // 执行拒绝策略
             reject(command);
     }
 
