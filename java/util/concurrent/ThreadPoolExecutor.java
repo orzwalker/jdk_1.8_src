@@ -488,6 +488,7 @@ public class ThreadPoolExecutor extends AbstractExecutorService {
     /**
      * Tracks largest attained pool size. Accessed only under
      * mainLock.
+     * 记录线程池曾经达到的最大值
      */
     private int largestPoolSize;
 
@@ -926,42 +927,61 @@ public class ThreadPoolExecutor extends AbstractExecutorService {
      * value to ensure reads of fresh values after checking other pool
      * state).
      * @return true if successful
+     *
+     * core: true，如果线程池中线程总数已经达到了core，则不能响应本次创建线程的请求；false时，max是上限
      */
     private boolean addWorker(Runnable firstTask, boolean core) {
         retry:
         for (;;) {
             int c = ctl.get();
+            // 线程池状态
             int rs = runStateOf(c);
 
             // Check if queue empty only if necessary.
+            // 不创建新的worker的条件
             if (rs >= SHUTDOWN &&
-                ! (rs == SHUTDOWN &&
+                ! (rs == SHUTDOWN && // SHUTDOWN状态，不允许提交任务，但是已有的任务继续执行
                    firstTask == null &&
+                        // SHUTDOWN && firstTask==null && !workQueue.isEmpty()，允许创建新的worker
+                        // 因为要把已经进入到workQueue的任务执行完
                    ! workQueue.isEmpty()))
                 return false;
 
             for (;;) {
+                // 线程数
                 int wc = workerCountOf(c);
                 if (wc >= CAPACITY ||
+                        // core决定了线程数的上限
                     wc >= (core ? corePoolSize : maximumPoolSize))
                     return false;
+                // 如果CAS成功，所有创建线程前的条件校验都满足了，准备创建线程执行任务
                 if (compareAndIncrementWorkerCount(c))
                     break retry;
+                // 并发问题
                 c = ctl.get();  // Re-read ctl
                 if (runStateOf(c) != rs)
+                    // 线程池状态发生了变化，需要回到最外层for循环；否则内层循环就可以了
                     continue retry;
                 // else CAS failed due to workerCount change; retry inner loop
             }
         }
 
+        /*
+         * 运行到这，可以开始创建线程执行任务了
+         */
+
+        // worker是否已经启动
         boolean workerStarted = false;
+        // worker是否已经添加到workers这个HashSet中
         boolean workerAdded = false;
         Worker w = null;
         try {
             w = new Worker(firstTask);
+            // worker中的线程
             final Thread t = w.thread;
             if (t != null) {
                 final ReentrantLock mainLock = this.mainLock;
+                // 线程池全局锁，关闭线程池如shutdown，都需要先获取锁，所以当前线程获取到锁后，持有锁期间，线程池不会被关闭
                 mainLock.lock();
                 try {
                     // Recheck while holding lock.
@@ -969,10 +989,13 @@ public class ThreadPoolExecutor extends AbstractExecutorService {
                     // shut down before lock acquired.
                     int rs = runStateOf(ctl.get());
 
+                    // 小于SHUTDOWN，一定是RUNNING
                     if (rs < SHUTDOWN ||
+                            // 不接受新的任务，继续执行workQueue中的任务
                         (rs == SHUTDOWN && firstTask == null)) {
                         if (t.isAlive()) // precheck that t is startable
                             throw new IllegalThreadStateException();
+                        // 添加到HashSet中
                         workers.add(w);
                         int s = workers.size();
                         if (s > largestPoolSize)
@@ -982,15 +1005,21 @@ public class ThreadPoolExecutor extends AbstractExecutorService {
                 } finally {
                     mainLock.unlock();
                 }
+                // worker添加成功，启动线程
                 if (workerAdded) {
+                    // 启动线程
+                    // 启动后调用Worker中的run方法
                     t.start();
                     workerStarted = true;
                 }
             }
         } finally {
+            // 线程启动失败后的一些清理工作
             if (! workerStarted)
                 addWorkerFailed(w);
         }
+
+        // 返回线程是否启动成功
         return workerStarted;
     }
 
@@ -1407,13 +1436,17 @@ public class ThreadPoolExecutor extends AbstractExecutorService {
         // 如果线程池是RUNNING状态，将任务添加到workQueue中
         if (isRunning(c) && workQueue.offer(command)) {
             int recheck = ctl.get();
+            // 线程池已不处于RUNNING状态了----移除这个已经入队的任务，并且执行拒绝策略
             if (! isRunning(recheck) && remove(command))
                 reject(command);
 
             // 线程池是RUNNING状态，并且线程数是0，那么新开启线程
+            // 二次检测，防止“任务提交到队列中了，但是线程池关闭了”这种情况出现
             else if (workerCountOf(recheck) == 0)
                 addWorker(null, false);
         }
+        // workQueue队列满了
+        // 创建worker失败，说明当先线程数达到了max，执行拒绝策略
         else if (!addWorker(command, false))
             // 执行拒绝策略
             reject(command);
@@ -1432,6 +1465,7 @@ public class ThreadPoolExecutor extends AbstractExecutorService {
      */
     public void shutdown() {
         final ReentrantLock mainLock = this.mainLock;
+        // 线程池的全局锁，关闭线程池需要锁
         mainLock.lock();
         try {
             checkShutdownAccess();
