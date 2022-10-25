@@ -637,7 +637,7 @@ public class ThreadPoolExecutor extends AbstractExecutorService {
          * @param firstTask the first task (null if none)
          */
         Worker(Runnable firstTask) {
-            // fixme 禁止中断
+            // 禁止中断，CAS中expect是0
             setState(-1); // inhibit interrupts until runWorker
             this.firstTask = firstTask;
             // 通过工厂创建一个新的线程
@@ -1409,6 +1409,8 @@ public class ThreadPoolExecutor extends AbstractExecutorService {
             int recheck = ctl.get();
             if (! isRunning(recheck) && remove(command))
                 reject(command);
+
+            // 线程池是RUNNING状态，并且线程数是0，那么新开启线程
             else if (workerCountOf(recheck) == 0)
                 addWorker(null, false);
         }
