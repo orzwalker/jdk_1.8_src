@@ -1024,6 +1024,8 @@ public class ThreadPoolExecutor extends AbstractExecutorService {
     }
 
     /**
+     * 入workQueue失败后的一些清除操作
+     *
      * Rolls back the worker thread creation.
      * - removes worker from workers, if present
      * - decrements worker count
@@ -1109,11 +1111,16 @@ public class ThreadPoolExecutor extends AbstractExecutorService {
             int rs = runStateOf(c);
 
             // Check if queue empty only if necessary.
+            // 等价两个条件
+            // 1、rs >= SHUTDOWN && workQueue.isEmpty() 队列为空
+            // 2、rs >= STOP 不再处理任务，所以返回null
             if (rs >= SHUTDOWN && (rs >= STOP || workQueue.isEmpty())) {
+                // CAS减少工作线程数
                 decrementWorkerCount();
                 return null;
             }
 
+            // 工作线程数
             int wc = workerCountOf(c);
 
             // Are workers subject to culling?
@@ -1127,11 +1134,13 @@ public class ThreadPoolExecutor extends AbstractExecutorService {
             }
 
             try {
+                // 获取workQueue中的任务
                 Runnable r = timed ?
                     workQueue.poll(keepAliveTime, TimeUnit.NANOSECONDS) :
                     workQueue.take();
                 if (r != null)
                     return r;
+                // 获取任务超时
                 timedOut = true;
             } catch (InterruptedException retry) {
                 timedOut = false;
@@ -1189,21 +1198,27 @@ public class ThreadPoolExecutor extends AbstractExecutorService {
         w.unlock(); // allow interrupts
         boolean completedAbruptly = true;
         try {
+            // 循环从workQueue中获取任务
             while (task != null || (task = getTask()) != null) {
                 w.lock();
                 // If pool is stopping, ensure thread is interrupted;
                 // if not, ensure thread is not interrupted.  This
                 // requires a recheck in second case to deal with
                 // shutdownNow race while clearing interrupt
+
+                // STOP状态，当前线程也要中断----不再处理当前任务
                 if ((runStateAtLeast(ctl.get(), STOP) ||
                      (Thread.interrupted() &&
                       runStateAtLeast(ctl.get(), STOP))) &&
-                    !wt.isInterrupted())
+                    !wt.isInterrupted()) {
                     wt.interrupt();
+                }
                 try {
+                    // 钩子方法，留个子类实现
                     beforeExecute(wt, task);
                     Throwable thrown = null;
                     try {
+                        // 正式开始执行任务
                         task.run();
                     } catch (RuntimeException x) {
                         thrown = x; throw x;
@@ -1212,6 +1227,7 @@ public class ThreadPoolExecutor extends AbstractExecutorService {
                     } catch (Throwable x) {
                         thrown = x; throw new Error(x);
                     } finally {
+                        // 钩子方法，留个子类实现
                         afterExecute(task, thrown);
                     }
                 } finally {
@@ -1222,6 +1238,8 @@ public class ThreadPoolExecutor extends AbstractExecutorService {
             }
             completedAbruptly = false;
         } finally {
+            // 1、说明while循环结束，workQueue中没有任务了，执行关闭
+            // 2、任务执行过程中发生了异常
             processWorkerExit(w, completedAbruptly);
         }
     }
@@ -1478,7 +1496,7 @@ public class ThreadPoolExecutor extends AbstractExecutorService {
         tryTerminate();
     }
 
-    /**
+   /**
      * Attempts to stop all actively executing tasks, halts the
      * processing of waiting tasks, and returns a list of the tasks
      * that were awaiting execution. These tasks are drained (removed)
