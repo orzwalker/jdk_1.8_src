@@ -324,7 +324,7 @@ public class ThreadPoolExecutor extends AbstractExecutorService {
     /**
      * The main pool control state, ctl, is an atomic integer packing
      * two conceptual fields
-     *   workerCount, indicating the effective number of threads
+     *   workerCount, indicating(表示) the effective number of threads
      *   runState,    indicating whether running, shutting down etc
      *
      * In order to pack them into one int, we limit workerCount to
@@ -424,7 +424,7 @@ public class ThreadPoolExecutor extends AbstractExecutorService {
     }
 
     /**
-     * Attempts to CAS-increment the workerCount field of ctl.
+     * Attempts(尝试) to CAS-increment the workerCount field of ctl.
      */
     private boolean compareAndIncrementWorkerCount(int expect) {
         return ctl.compareAndSet(expect, expect + 1);
@@ -475,6 +475,8 @@ public class ThreadPoolExecutor extends AbstractExecutorService {
     private final ReentrantLock mainLock = new ReentrantLock();
 
     /**
+     * 线程池中所有线程worker
+     *
      * Set containing all worker threads in pool. Accessed only when
      * holding mainLock.
      */
@@ -493,6 +495,8 @@ public class ThreadPoolExecutor extends AbstractExecutorService {
     private int largestPoolSize;
 
     /**
+     * 线程池已完成的任务数
+     *
      * Counter for completed tasks. Updated only on termination of
      * worker threads. Accessed only under mainLock.
      */
@@ -608,6 +612,7 @@ public class ThreadPoolExecutor extends AbstractExecutorService {
      * 线程池中做任务的线程
      */
     private final class Worker
+        // AQS
         extends AbstractQueuedSynchronizer
         implements Runnable
     {
@@ -628,7 +633,7 @@ public class ThreadPoolExecutor extends AbstractExecutorService {
         Runnable firstTask;
         /**
          * Per-thread task counter
-         * 线程完成的任务数
+         * 当前线程完成的任务数
          * 保证可见性
          **/
         volatile long completedTasks;
@@ -994,6 +999,7 @@ public class ThreadPoolExecutor extends AbstractExecutorService {
                             // 不接受新的任务，继续执行workQueue中的任务
                         (rs == SHUTDOWN && firstTask == null)) {
                         if (t.isAlive()) // precheck that t is startable
+                            // 此时，线程还没有被启动
                             throw new IllegalThreadStateException();
                         // 添加到HashSet中
                         workers.add(w);
@@ -1195,6 +1201,7 @@ public class ThreadPoolExecutor extends AbstractExecutorService {
         Thread wt = Thread.currentThread();
         Runnable task = w.firstTask;
         w.firstTask = null;
+        // fixme 为什么需要unlock
         w.unlock(); // allow interrupts
         boolean completedAbruptly = true;
         try {
@@ -1406,9 +1413,14 @@ public class ThreadPoolExecutor extends AbstractExecutorService {
      * Executes the given task sometime in the future.  The task
      * may execute in a new thread or in an existing pooled thread.
      *
+     * 执行任务，这个任务可能被一个新的线程执行，也可能被已经存在的线程执行
+     *
      * If the task cannot be submitted for execution, either because this
      * executor has been shutdown or because its capacity has been reached,
      * the task is handled by the current {@code RejectedExecutionHandler}.
+     *
+     * 如果任务提交失败，要么线程池shutdown状态了，要么任务队列满了，此时执行拒绝策略
+     *
      *
      * @param command the task to execute
      * @throws RejectedExecutionException at discretion of
