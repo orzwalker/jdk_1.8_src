@@ -142,17 +142,20 @@ public abstract class AbstractExecutorService implements ExecutorService {
     }
 
     /**
-     * the main mechanics of invokeAny.
+     * the main mechanics（方法、手段） of invokeAny.
      */
     private <T> T doInvokeAny(Collection<? extends Callable<T>> tasks,
                               boolean timed, long nanos)
         throws InterruptedException, ExecutionException, TimeoutException {
         if (tasks == null)
             throw new NullPointerException();
+        // 任务数
         int ntasks = tasks.size();
         if (ntasks == 0)
             throw new IllegalArgumentException();
         ArrayList<Future<T>> futures = new ArrayList<Future<T>>(ntasks);
+        // ecs中有个BlockingQueue，用来存储已完成的任务
+        // 实际执行任务的还是当前对象this
         ExecutorCompletionService<T> ecs =
             new ExecutorCompletionService<T>(this);
 
@@ -170,32 +173,55 @@ public abstract class AbstractExecutorService implements ExecutorService {
             Iterator<? extends Callable<T>> it = tasks.iterator();
 
             // Start one task for sure; the rest incrementally
+            // 先执行一个任务
             futures.add(ecs.submit(it.next()));
+            // 任务数减一
             --ntasks;
+            // 正在执行的任务数
             int active = 1;
 
+            /**
+             * 所有的任务一个个提交
+             * 任务提交后，如果设置了超时，检测任务是否超时
+             * 如果没有设置超时，take方法阻塞，等待获取第一个执行的结果
+             * 如果所有的任务都执行失败了，退出for循环
+             */
             for (;;) {
+                // 已完成任务队列中的任务数，非阻塞
                 Future<T> f = ecs.poll();
+                // 如果队列中没有任务，说明此时还没有任务完成
                 if (f == null) {
                     if (ntasks > 0) {
                         --ntasks;
                         futures.add(ecs.submit(it.next()));
+                        // 正在执行的任务数加一
                         ++active;
                     }
+                    // 1、已完成任务队列为空，说明还有任务没有完成
+                    // 2、但是active执行中的任务数为0
+                    // 说明所有的任务都执行失败了
                     else if (active == 0)
+                        // 所有的任务都执行失败了，退出for循环
                         break;
+                    // ntasks<=0,没有任务了，但是设置超时，判断是否超时
                     else if (timed) {
                         f = ecs.poll(nanos, TimeUnit.NANOSECONDS);
+                        // 完成队列中没有数据，说明超时了
                         if (f == null)
                             throw new TimeoutException();
                         nanos = deadline - System.nanoTime();
                     }
                     else
+                        // ntasks<=0，没有任务需要提交了
+                        // 线程池中的任务没有完成（f==null），阻塞等待取一个完成的任务
                         f = ecs.take();
                 }
+                // 队列中有任务，说明已经有任务完成了
                 if (f != null) {
+                    // 正在执行的任务数减一
                     --active;
                     try {
+                        // 返回执行结果，如果有异常，包装成ExecutionException
                         return f.get();
                     } catch (ExecutionException eex) {
                         ee = eex;
@@ -203,13 +229,14 @@ public abstract class AbstractExecutorService implements ExecutorService {
                         ee = new ExecutionException(rex);
                     }
                 }
-            }
+            } // for循环结果
 
             if (ee == null)
                 ee = new ExecutionException();
             throw ee;
 
         } finally {
+            // 方法退出前，取消已提交的任务
             for (int i = 0, size = futures.size(); i < size; i++)
                 futures.get(i).cancel(true);
         }
@@ -231,6 +258,9 @@ public abstract class AbstractExecutorService implements ExecutorService {
         return doInvokeAny(tasks, true, unit.toNanos(timeout));
     }
 
+    /**
+     * 执行所有任务
+     */
     public <T> List<Future<T>> invokeAll(Collection<? extends Callable<T>> tasks)
         throws InterruptedException {
         if (tasks == null)
@@ -239,14 +269,17 @@ public abstract class AbstractExecutorService implements ExecutorService {
         boolean done = false;
         try {
             for (Callable<T> t : tasks) {
+                // 包装成RunnableFuture
                 RunnableFuture<T> f = newTaskFor(t);
                 futures.add(f);
+                // 提交任务
                 execute(f);
             }
             for (int i = 0, size = futures.size(); i < size; i++) {
                 Future<T> f = futures.get(i);
                 if (!f.isDone()) {
                     try {
+                        // 阻塞方法，直到获取到值，或者抛出异常
                         f.get();
                     } catch (CancellationException ignore) {
                     } catch (ExecutionException ignore) {
@@ -257,11 +290,15 @@ public abstract class AbstractExecutorService implements ExecutorService {
             return futures;
         } finally {
             if (!done)
+                // 取消任务
                 for (int i = 0, size = futures.size(); i < size; i++)
                     futures.get(i).cancel(true);
         }
     }
 
+    /**
+     * 带超时时间的invokeAll
+     */
     public <T> List<Future<T>> invokeAll(Collection<? extends Callable<T>> tasks,
                                          long timeout, TimeUnit unit)
         throws InterruptedException {
@@ -281,6 +318,7 @@ public abstract class AbstractExecutorService implements ExecutorService {
             // executor doesn't have any/much parallelism.
             for (int i = 0; i < size; i++) {
                 execute((Runnable)futures.get(i));
+                // 每提交一个任务，都检测是否超时了
                 nanos = deadline - System.nanoTime();
                 if (nanos <= 0L)
                     return futures;
@@ -292,6 +330,7 @@ public abstract class AbstractExecutorService implements ExecutorService {
                     if (nanos <= 0L)
                         return futures;
                     try {
+                        // nanos==剩余的时间
                         f.get(nanos, TimeUnit.NANOSECONDS);
                     } catch (CancellationException ignore) {
                     } catch (ExecutionException ignore) {
