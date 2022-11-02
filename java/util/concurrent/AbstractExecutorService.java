@@ -173,7 +173,7 @@ public abstract class AbstractExecutorService implements ExecutorService {
             Iterator<? extends Callable<T>> it = tasks.iterator();
 
             // Start one task for sure; the rest incrementally
-            // 先执行一个任务
+            // 先提交执行一个任务
             futures.add(ecs.submit(it.next()));
             // 任务数减一
             --ntasks;

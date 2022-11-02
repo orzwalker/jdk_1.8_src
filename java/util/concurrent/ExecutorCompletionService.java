@@ -118,7 +118,13 @@ public class ExecutorCompletionService<V> implements CompletionService<V> {
             super(task, null);
             this.task = task;
         }
-        protected void done() { completionQueue.add(task); }
+
+        /**
+         * 任务完成时，添加到完成队列中
+         */
+        protected void done() {
+            completionQueue.add(task);
+        }
         private final Future<V> task;
     }
 
@@ -178,7 +184,9 @@ public class ExecutorCompletionService<V> implements CompletionService<V> {
 
     public Future<V> submit(Callable<V> task) {
         if (task == null) throw new NullPointerException();
+        // 包装
         RunnableFuture<V> f = newTaskFor(task);
+        // 提交任务
         executor.execute(new QueueingFuture(f));
         return f;
     }

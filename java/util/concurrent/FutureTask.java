@@ -258,6 +258,9 @@ public class FutureTask<V> implements RunnableFuture<V> {
         }
     }
 
+    /**
+     * 任务提交后执行时，worker的线程会执行该方法
+     */
     public void run() {
         if (state != NEW ||
             !UNSAFE.compareAndSwapObject(this, runnerOffset,
@@ -277,6 +280,7 @@ public class FutureTask<V> implements RunnableFuture<V> {
                     setException(ex);
                 }
                 if (ran)
+                    // 执行成功后，设置返回值
                     set(result);
             }
         } finally {
@@ -387,6 +391,7 @@ public class FutureTask<V> implements RunnableFuture<V> {
             }
         }
 
+        // 执行完成方法
         done();
 
         callable = null;        // to reduce footprint
