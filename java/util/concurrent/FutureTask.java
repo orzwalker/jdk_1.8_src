@@ -399,6 +399,7 @@ public class FutureTask<V> implements RunnableFuture<V> {
 
     /**
      * Awaits completion or aborts on interrupt or timeout.
+     * 任务完成、中断、超时
      *
      * @param timed true if use timed waits
      * @param nanos time to wait, if timed
