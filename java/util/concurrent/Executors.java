@@ -45,6 +45,7 @@ import java.security.AccessControlException;
 import sun.security.util.SecurityConstants;
 
 /**
+ * 线程池工具类
  * Factory and utility methods for {@link Executor}, {@link
  * ExecutorService}, {@link ScheduledExecutorService}, {@link
  * ThreadFactory}, and {@link Callable} classes defined in this
@@ -86,9 +87,12 @@ public class Executors {
      * @throws IllegalArgumentException if {@code nThreads <= 0}
      */
     public static ExecutorService newFixedThreadPool(int nThreads) {
-        return new ThreadPoolExecutor(nThreads, nThreads,
-                                      0L, TimeUnit.MILLISECONDS,
-                                      new LinkedBlockingQueue<Runnable>());
+        return new ThreadPoolExecutor(
+                nThreads,
+                nThreads,
+                0L, // 0，因为core==max，不存在回收
+                TimeUnit.MILLISECONDS,
+                new LinkedBlockingQueue<Runnable>()); // 无界队列
     }
 
     /**
@@ -155,6 +159,8 @@ public class Executors {
     }
 
     /**
+     * core==max==1
+     *
      * Creates an Executor that uses a single worker thread operating
      * off an unbounded queue. (Note however that if this single
      * thread terminates due to a failure during execution prior to
@@ -197,6 +203,8 @@ public class Executors {
     }
 
     /**
+     * core==0
+     * max==maxvalue
      * Creates a thread pool that creates new threads as needed, but
      * will reuse previously constructed threads when they are
      * available.  These pools will typically improve the performance

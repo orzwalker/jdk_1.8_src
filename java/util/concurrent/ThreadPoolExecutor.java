@@ -1041,7 +1041,7 @@ public class ThreadPoolExecutor extends AbstractExecutorService {
                 // worker添加成功，启动线程
                 if (workerAdded) {
                     // 启动线程(这个线程就是Worker.thread)
-                    // 启动后调用Worker中的run方法
+                    // 启动t线程，并执行其run方法
                     t.start();
                     workerStarted = true;
                 }
@@ -1190,6 +1190,8 @@ public class ThreadPoolExecutor extends AbstractExecutorService {
     }
 
     /**
+     * 一定要看注释啊，讲的明明白白，新的worker一直在循环获取任务并执行
+     *
      * Main worker run loop.  Repeatedly gets tasks from queue and
      * executes them, while coping with a number of issues:
      *
@@ -1241,7 +1243,8 @@ public class ThreadPoolExecutor extends AbstractExecutorService {
         w.unlock(); // allow interrupts
         boolean completedAbruptly = true;
         try {
-            // 循环从workQueue中获取任务
+            // 创建完的worker循环从workQueue中获取任务
+            // 除非这个worker.thread被中断，否则一直存在，并且循环获取任务并执行
             while (task != null || (task = getTask()) != null) {
                 w.lock();
                 // If pool is stopping, ensure thread is interrupted;
@@ -1273,7 +1276,7 @@ public class ThreadPoolExecutor extends AbstractExecutorService {
                     } catch (Throwable x) {
                         thrown = x; throw new Error(x);
                     } finally {
-                        // 钩子方法，留个子类实现
+                        // 钩子方法，留给子类实现
                         afterExecute(task, thrown);
                     }
                 } finally {
