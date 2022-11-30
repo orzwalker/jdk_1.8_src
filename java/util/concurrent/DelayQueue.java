@@ -71,6 +71,10 @@ public class DelayQueue<E extends Delayed> extends AbstractQueue<E>
     implements BlockingQueue<E> {
 
     private final transient ReentrantLock lock = new ReentrantLock();
+    /**
+     * 优先队列
+     * 因为设计到任务排序，所以需要优先级队列
+     */
     private final PriorityQueue<E> q = new PriorityQueue<E>();
 
     /**
@@ -116,6 +120,7 @@ public class DelayQueue<E extends Delayed> extends AbstractQueue<E>
     }
 
     /**
+     * 添加任务
      * Inserts the specified element into this delay queue.
      *
      * @param e the element to add
@@ -127,6 +132,8 @@ public class DelayQueue<E extends Delayed> extends AbstractQueue<E>
     }
 
     /**
+     * 添加任务到队列
+     *
      * Inserts the specified element into this delay queue.
      *
      * @param e the element to add

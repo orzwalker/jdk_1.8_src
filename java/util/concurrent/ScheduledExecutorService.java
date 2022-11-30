@@ -36,8 +36,11 @@
 package java.util.concurrent;
 
 /**
+ * 1、执行延时任务
+ * 2、周期性重复执行任务
+ *
  * An {@link ExecutorService} that can schedule commands to run after a given
- * delay, or to execute periodically.
+ * delay, or to execute periodically(定期).
  *
  * <p>The {@code schedule} methods create tasks with various delays
  * and return a task object that can be used to cancel or check
@@ -94,7 +97,9 @@ package java.util.concurrent;
 public interface ScheduledExecutorService extends ExecutorService {
 
     /**
-     * Creates and executes a one-shot action that becomes enabled
+     * 指定延时后执行任务
+     *
+     * Creates and executes a one-shot(一次性) action that becomes enabled
      * after the given delay.
      *
      * @param command the task to execute
@@ -111,6 +116,8 @@ public interface ScheduledExecutorService extends ExecutorService {
                                        long delay, TimeUnit unit);
 
     /**
+     * 指定延时后执行任务
+     *
      * Creates and executes a ScheduledFuture that becomes enabled after the
      * given delay.
      *
@@ -127,7 +134,12 @@ public interface ScheduledExecutorService extends ExecutorService {
                                            long delay, TimeUnit unit);
 
     /**
-     * Creates and executes a periodic action that becomes enabled first
+     * 指定延时initialDelay后开始执行任务
+     * 每隔period时间后定期执行一次
+     * 如果任务执行时长大于period，等待任务执行结束
+     * 如果任务执行时长小于period，定时器需要等待，达到period时长后再执行
+     *
+     * Creates and executes a periodic(定期的) action that becomes enabled first
      * after the given initial delay, and subsequently with the given
      * period; that is executions will commence after
      * {@code initialDelay} then {@code initialDelay+period}, then
@@ -141,7 +153,7 @@ public interface ScheduledExecutorService extends ExecutorService {
      *
      * @param command the task to execute
      * @param initialDelay the time to delay first execution
-     * @param period the period between successive executions
+     * @param period the period(周期) between successive executions
      * @param unit the time unit of the initialDelay and period parameters
      * @return a ScheduledFuture representing pending completion of
      *         the task, and whose {@code get()} method will throw an
@@ -157,6 +169,10 @@ public interface ScheduledExecutorService extends ExecutorService {
                                                   TimeUnit unit);
 
     /**
+     * 执行延时initialDelay后开始执行
+     * 第一个任务执行完成后，等待delay时间后再次执行
+     * 前后两个周期之间必须有delay时长的等待操作
+     *
      * Creates and executes a periodic action that becomes enabled first
      * after the given initial delay, and subsequently with the
      * given delay between the termination of one execution and the

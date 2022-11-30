@@ -947,7 +947,7 @@ public class ThreadPoolExecutor extends AbstractExecutorService {
      * core: true，如果线程池中线程总数已经达到了core，则不能响应本次创建线程的请求；false时，max是上限
      */
     private boolean addWorker(Runnable firstTask, boolean core) {
-        // 一个标示位
+        // 一个标识位
         retry:
         for (;;) {
             int c = ctl.get();
@@ -1174,9 +1174,11 @@ public class ThreadPoolExecutor extends AbstractExecutorService {
             }
 
             try {
-                // 获取workQueue中的任务
+                // 获取wor
                 Runnable r = timed ?
                     workQueue.poll(keepAliveTime, TimeUnit.NANOSECONDS) :
+                        // 如何保证核心线程数不被销毁的
+                        // wc小于core时，timed==false，执行take()阻塞方法，阻塞线程，所以不会被销毁
                     workQueue.take();
                 if (r != null)
                     return r;
