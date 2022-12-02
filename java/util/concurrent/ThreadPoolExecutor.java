@@ -1697,7 +1697,7 @@ public class ThreadPoolExecutor extends AbstractExecutorService {
     /**
      * Sets the core number of threads.  This overrides any value set
      * in the constructor.  If the new value is smaller than the
-     * current value, excess existing threads will be terminated when
+     * current value, excess(超过) existing threads will be terminated when
      * they next become idle.  If larger, new threads will, if needed,
      * be started to execute any queued tasks.
      *
@@ -1711,8 +1711,10 @@ public class ThreadPoolExecutor extends AbstractExecutorService {
         int delta = corePoolSize - this.corePoolSize;
         this.corePoolSize = corePoolSize;
         if (workerCountOf(ctl.get()) > corePoolSize)
+            // 如果要设置的线程数小于当前值，则停止闲置线程
             interruptIdleWorkers();
         else if (delta > 0) {
+            // 否则增加线程数
             // We don't really know how many new threads are "needed".
             // As a heuristic, prestart enough new workers (up to new
             // core size) to handle the current number of tasks in
@@ -2171,6 +2173,13 @@ public class ThreadPoolExecutor extends AbstractExecutorService {
 
     /**
      * 如果线程池没有关闭，由提交任务的线程去执行任务
+     *
+     * 1、该策略既不会抛弃任务，也不会抛出异常，而是当线程池中的所有线程都被占用后，并且工作队列被填满后，下一个任务会在调用execute时在主线程中执行，
+     * 从而降低新任务的流量。由于执行任务需要一定的时间，因此主线程至少在一定的时间内不能提交任何任务，从而使得工作者线程有时间来处理正在执行的任务。
+     *
+     * 2、另一方面，在这期间，主线程不会调用accept，那么到达的请求将被保存在TCP层的队列中而不是在应用程序的队列中。如果持续过载，那么TCP层将最终发现他的请求队列被填满，因此同样会开始抛弃请求。
+     *
+     * 3、当服务器过载时，这种过载情况会逐渐向外蔓延开来——从线程池到工作队列到应用程序再到TCP层，最终到达客户端，导致服务器在高负载的情况下实现一种平缓的性能降低
      *
      * A handler for rejected tasks that runs the rejected task
      * directly in the calling thread of the {@code execute} method,
