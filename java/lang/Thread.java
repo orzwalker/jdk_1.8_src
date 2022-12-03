@@ -1746,11 +1746,16 @@ class Thread implements Runnable {
      */
     public enum State {
         /**
+         * 初始化状态
+         * 初始化状态
          * Thread state for a thread which has not yet started.
          */
         NEW,
 
         /**
+         * 可运行状态
+         * 1、可运行
+         * 2、运行中
          * Thread state for a runnable thread.  A thread in the runnable
          * state is executing in the Java virtual machine but it may
          * be waiting for other resources from the operating system
@@ -1759,6 +1764,9 @@ class Thread implements Runnable {
         RUNNABLE,
 
         /**
+         * 阻塞状态
+         * 只有一种场景会触发这种转换----线程等待synchronized隐式锁
+         *
          * Thread state for a thread blocked waiting for a monitor lock.
          * A thread in the blocked state is waiting for a monitor lock
          * to enter a synchronized block/method or
@@ -1768,6 +1776,14 @@ class Thread implements Runnable {
         BLOCKED,
 
         /**
+         * 无时限等待状态
+         *
+         * BLOCKED和WAITING的区别
+         * BLOCKED是被动的，竞争锁失败后，被阻塞，线程在同步队列中继续竞争锁
+         * WAITING是主动的，说明释放了CPU执行权和释放了锁，进入了等待队列（管程条件等待队列），需要被重新唤醒，进入同步队列中去竞争锁
+         * 而Thread.sleep(n)，是进入超时等待状态，但是线程还是持有锁的，时间到了之后返回原状态
+         *
+         *
          * Thread state for a waiting thread.
          * A thread is in the waiting state due to calling one of the
          * following methods:
@@ -1789,6 +1805,7 @@ class Thread implements Runnable {
         WAITING,
 
         /**
+         * 有时限等待状态
          * Thread state for a waiting thread with a specified waiting time.
          * A thread is in the timed waiting state due to calling one of
          * the following methods with a specified positive waiting time:
@@ -1803,6 +1820,7 @@ class Thread implements Runnable {
         TIMED_WAITING,
 
         /**
+         * 终止状态
          * Thread state for a terminated thread.
          * The thread has completed execution.
          */

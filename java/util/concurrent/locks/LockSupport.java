@@ -151,12 +151,16 @@ public class LockSupport {
      * purposes and lies dormant until one of three things happens:
      *
      * <ul>
+     * 恢复的条件
+     * 1、其他线程执行了unpark
      * <li>Some other thread invokes {@link #unpark unpark} with the
      * current thread as the target; or
      *
+     * 2、其他线程中断了该线程
      * <li>Some other thread {@linkplain Thread#interrupt interrupts}
      * the current thread; or
      *
+     * 3、发生了不可预料的事情
      * <li>The call spuriously (that is, for no reason) returns.
      * </ul>
      *
@@ -171,8 +175,10 @@ public class LockSupport {
      */
     public static void park(Object blocker) {
         Thread t = Thread.currentThread();
+        // 记录当前线程阻塞的原因
         setBlocker(t, blocker);
         UNSAFE.park(false, 0L);
+        // 线程恢复后，去掉阻塞的原因
         setBlocker(t, null);
     }
 
