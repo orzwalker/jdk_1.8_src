@@ -175,9 +175,8 @@ public class SynchronousQueue<E> extends AbstractQueue<E>
         /**
          * Performs a put or take.
          *
-         * @param e if non-null, the item to be handed to a consumer;
-         *          if null, requests that transfer return an item
-         *          offered by producer.
+         `* @param e if non-null, the item to be handed to a consumer; ---- 从Producer转移到consumer
+         *          if null, requests that transfer return an item offered by producer. ----Producer生产一个元素
          * @param timed if this operation should timeout
          * @param nanos the timeout, in nanoseconds
          * @return if non-null, the item provided or received; if null,
@@ -858,6 +857,7 @@ public class SynchronousQueue<E> extends AbstractQueue<E>
      * Creates a {@code SynchronousQueue} with nonfair access policy.
      */
     public SynchronousQueue() {
+        // 默认非公平锁
         this(false);
     }
 
@@ -868,6 +868,11 @@ public class SynchronousQueue<E> extends AbstractQueue<E>
      *        access; otherwise the order is unspecified.
      */
     public SynchronousQueue(boolean fair) {
+        /*
+         * 两个不同的实现类
+         * 公平策略：queue（FIFO）
+         * 非公平：stack（先进后出，后进先出）
+         */
         transferer = fair ? new TransferQueue<E>() : new TransferStack<E>();
     }
 
@@ -880,6 +885,7 @@ public class SynchronousQueue<E> extends AbstractQueue<E>
      */
     public void put(E e) throws InterruptedException {
         if (e == null) throw new NullPointerException();
+        // put操作，需要转移给消费者
         if (transferer.transfer(e, false, 0) == null) {
             Thread.interrupted();
             throw new InterruptedException();
@@ -927,6 +933,7 @@ public class SynchronousQueue<E> extends AbstractQueue<E>
      * @throws InterruptedException {@inheritDoc}
      */
     public E take() throws InterruptedException {
+        // 读取并移除，所以第一个参数是null
         E e = transferer.transfer(null, false, 0);
         if (e != null)
             return e;
