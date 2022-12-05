@@ -78,6 +78,9 @@ import java.util.Spliterator;
  * @since 1.5
  * @author Doug Lea
  * @param <E> the type of elements held in this collection
+ *
+ *
+ * put、take两个操作使用同一把锁，不能并发操作
  */
 public class ArrayBlockingQueue<E> extends AbstractQueue<E>
         implements BlockingQueue<E>, java.io.Serializable {
@@ -127,8 +130,10 @@ public class ArrayBlockingQueue<E> extends AbstractQueue<E>
      */
     private final Condition notEmpty;
 
-    /** Condition for waiting puts */
-    // 唤起出队操作的线程执行出队操作
+    /**
+     * Condition for waiting puts
+     * 唤起出队操作的线程执行出队操作
+     */
     private final Condition notFull;
 
     /**
@@ -166,6 +171,7 @@ public class ArrayBlockingQueue<E> extends AbstractQueue<E>
     }
 
     /**
+     * 入队（循环数组），并唤醒出队操作
      * Inserts element at current put position, advances, and signals.
      * Call only when holding lock.
      *
@@ -279,6 +285,7 @@ public class ArrayBlockingQueue<E> extends AbstractQueue<E>
     public ArrayBlockingQueue(int capacity, boolean fair) {
         if (capacity <= 0)
             throw new IllegalArgumentException();
+        // 初始化数组大小
         this.items = new Object[capacity];
         lock = new ReentrantLock(fair);
         notEmpty = lock.newCondition();
@@ -381,8 +388,10 @@ public class ArrayBlockingQueue<E> extends AbstractQueue<E>
     public void put(E e) throws InterruptedException {
         checkNotNull(e);
         final ReentrantLock lock = this.lock;
+        // 管程模型，所以必须持有锁
         lock.lockInterruptibly();
         try {
+            // 范式 while-wait
             while (count == items.length)
                 // 队列已满，线程进入条件等待队列，等待队列不满时唤起
                 notFull.await();
@@ -439,8 +448,10 @@ public class ArrayBlockingQueue<E> extends AbstractQueue<E>
         final ReentrantLock lock = this.lock;
         lock.lockInterruptibly();
         try {
+            // 范式
             while (count == 0)
                 notEmpty.await();
+            // 出队，并唤醒入队操作
             return dequeue();
         } finally {
             lock.unlock();

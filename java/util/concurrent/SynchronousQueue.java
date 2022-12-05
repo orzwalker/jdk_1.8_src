@@ -80,6 +80,12 @@ import java.util.Spliterators;
  * @since 1.5
  * @author Doug Lea and Bill Scherer and Michael Scott
  * @param <E> the type of elements held in this collection
+ *
+ *           =================================
+ * 同步队列
+ * 一个读（写）线程 需要 搭配一个 写（读）线程
+ *
+ *
  */
 public class SynchronousQueue<E> extends AbstractQueue<E>
     implements BlockingQueue<E>, java.io.Serializable {

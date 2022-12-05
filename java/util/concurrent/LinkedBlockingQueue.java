@@ -133,7 +133,7 @@ public class LinkedBlockingQueue<E> extends AbstractQueue<E>
 
     /**
      * Linked list node class
-     * 单列表
+     * 单向链表
      */
     static class Node<E> {
         E item;
@@ -397,7 +397,7 @@ public class LinkedBlockingQueue<E> extends AbstractQueue<E>
         } finally {
             putLock.unlock();
         }
-        // 只有如对操作，下边的if中唤起语句不会被执行，除过第一次外，只是多了若干次空的唤起动作
+        // 只有入队操作，下边的if中唤起语句不会被执行，除过第一次外，只是多了若干次空的唤起动作
         // 如果入队、出队都有的情况下，出队会在take的try模块中执行，用不上下边的if语句中的唤起
         if (c == 0)
             // 入队列前元素个数为0，执行enqueue后，一定大于0，所以唤起“队列非空”条件等待队列，如果队列非空，执行出队列操作
