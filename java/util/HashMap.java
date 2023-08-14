@@ -627,8 +627,10 @@ public class HashMap<K,V> extends AbstractMap<K,V>
                    boolean evict) {
         Node<K,V>[] tab; Node<K,V> p; int n, i;
         if ((tab = table) == null || (n = tab.length) == 0)
+            // 第一次put时会触发resize操作
             n = (tab = resize()).length;
         if ((p = tab[i = (n - 1) & hash]) == null)
+            // 当前槽位为空，则node存放到这个位置
             tab[i] = newNode(hash, key, value, null);
         else {
             Node<K,V> e; K k;

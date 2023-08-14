@@ -293,7 +293,7 @@ import sun.misc.Unsafe;
  * 抽象队列同步器，AQS
  * https://www.cnblogs.com/waterystone/p/4920797.html
  * https://javadoop.com/post/AbstractQueuedSynchronizer
- * https://blog.csdn.net/oldshaui/article/details/106892622#comments_21882343
+ * https://blog.csdn.net/oldshaui/article/details/106892622
  */
 public abstract class AbstractQueuedSynchronizer
     extends AbstractOwnableSynchronizer
@@ -642,6 +642,7 @@ public abstract class AbstractQueuedSynchronizer
                 if (compareAndSetTail(t, node)) {
                     t.next = node;
                     // t是队尾节点的前驱节点
+                    // 注意，这个方法的退出逻辑——只有入队列成功之后，才能退出，否则一直自旋尝试入队
                     return t;
                 }
             }
@@ -953,7 +954,9 @@ public abstract class AbstractQueuedSynchronizer
         LockSupport.park(this);
         /**
          * 为什么要用interrupted ---- https://blog.csdn.net/anlian523/article/details/106752414
-         * interrupted()会返回当前线程状态，并将线程状态重新置为FALSE====非中断中断
+         * interrupted()会返回当前线程状态，并将线程状态重新置为FALSE====非中断状态
+         * 线程中断标识位为false，就会被阻塞的while(true)中，下次被唤起后，继续从while(true)中执行
+         *
          * park()会消耗permit
          * interrupt会调用unpark()
          * park()中会判断当前线程状态，如果是中断状态，直接返回，不会阻塞====达不到阻塞的效果
@@ -985,16 +988,18 @@ public abstract class AbstractQueuedSynchronizer
             boolean interrupted = false;
             /**
              * "阻塞-被唤醒" 这样一种重复状态
+             * 也就是管程模型，所以这边需要自旋-while(true)
              */
             for (;;) {
                 // 前驱节点
                 final Node p = node.predecessor();
-                // 前驱是head====当前节点进入了阻塞队列，并且是队列的第一个元素
+                // 前驱是head====当前节点进入了阻塞队列，并且是队列的第一个元素（head的next节点）
                 // 当前节点去尝试竞争一下锁
                 // 只有第一个节点才会去尝试加锁====公平
                 if (p == head && tryAcquire(arg)) {
+                    // 尝试加锁成功，head后移指向当前节点，此时head.thread==null，prev==null
                     setHead(node);
-                    p.next = null; // help GC
+                    p.next = null; // help GC，也就是head.next指向node这个指向被释放，head没有引用任何对象，GC过程中会回收掉
                     failed = false;
                     // 这个if条件不满足的话，一直会自旋，不会退出
                     // 除非挂起成功
@@ -1003,7 +1008,9 @@ public abstract class AbstractQueuedSynchronizer
 
                 // 上边的分支没有成功
                 // 1、当前节点不是队头（除过head）；2、加锁失败
+                // head的ws是不是-1，这样head线程执行完释放锁后，会自动唤起next也就是node节点里头的线程
                 if (shouldParkAfterFailedAcquire(p, node) &&
+                        // 使用park挂起node节点的thread
                         parkAndCheckInterrupt()) {
                     interrupted = true;
                 }
