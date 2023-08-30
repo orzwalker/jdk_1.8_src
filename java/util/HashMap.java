@@ -135,6 +135,14 @@ import sun.misc.SharedSecrets;
  * @see     TreeMap
  * @see     Hashtable
  * @since   1.2
+ *
+ *
+ *
+ *
+ * HashMap在JDK7和JDK8中的区别及其详解--https://blog.csdn.net/zmj199536/article/details/100990213
+ * HashMap链表成环（JDK1.7）原因及源码分析--https://blog.csdn.net/qq_26012495/article/details/120836406
+ * HashMap☞JDK7中成环原因及JDK8的解决方式--https://blog.csdn.net/wei_gg/article/details/115645957
+ *
  */
 public class HashMap<K,V> extends AbstractMap<K,V>
     implements Map<K,V>, Cloneable, Serializable {
@@ -571,11 +579,14 @@ public class HashMap<K,V> extends AbstractMap<K,V>
             (first = tab[(n - 1) & hash]) != null) {
             if (first.hash == hash && // always check first node
                 ((k = first.key) == key || (key != null && key.equals(k))))
+                // 第一个节点就是需要的
                 return first;
             if ((e = first.next) != null) {
                 if (first instanceof TreeNode)
+                    // 红黑树
                     return ((TreeNode<K,V>)first).getTreeNode(hash, key);
                 do {
+                    // 遍历链表
                     if (e.hash == hash &&
                         ((k = e.key) == key || (key != null && key.equals(k))))
                         return e;
@@ -619,7 +630,7 @@ public class HashMap<K,V> extends AbstractMap<K,V>
      * @param hash hash for key
      * @param key the key
      * @param value the value to put
-     * @param onlyIfAbsent if true, don't change existing value
+     * @param onlyIfAbsent if true, don't change existing value，true时，如果key已存在，不更新value
      * @param evict if false, the table is in creation mode.
      * @return previous value, or null if none
      */
@@ -633,35 +644,49 @@ public class HashMap<K,V> extends AbstractMap<K,V>
             // 当前槽位为空，则node存放到这个位置
             tab[i] = newNode(hash, key, value, null);
         else {
+            // 这个位置有元素了
+
             Node<K,V> e; K k;
+            // 这个位置就是要插入的位置
             if (p.hash == hash &&
                 ((k = p.key) == key || (key != null && key.equals(k))))
                 e = p;
+
+            // 该节点是红黑树节点
             else if (p instanceof TreeNode)
                 e = ((TreeNode<K,V>)p).putTreeVal(this, tab, hash, key, value);
             else {
+                // 说明这个位置是个链表
                 for (int binCount = 0; ; ++binCount) {
+                    // 链表元素next节点为空，直接尾插入
                     if ((e = p.next) == null) {
                         p.next = newNode(hash, key, value, null);
                         if (binCount >= TREEIFY_THRESHOLD - 1) // -1 for 1st
+                            // 触发转化为红黑树
                             treeifyBin(tab, hash);
                         break;
                     }
+                    // 链表元素next节点不为空，并且就是这个key
                     if (e.hash == hash &&
                         ((k = e.key) == key || (key != null && key.equals(k))))
+                        // e是链表中的节点，且e.key和要插入的key相同
                         break;
                     p = e;
                 }
             }
+            // e.key等于要插入的key
             if (e != null) { // existing mapping for key
                 V oldValue = e.value;
                 if (!onlyIfAbsent || oldValue == null)
+                    // 覆盖
                     e.value = value;
                 afterNodeAccess(e);
+                // 返回旧值
                 return oldValue;
             }
         }
         ++modCount;
+        // 如果因为新插入的节点导致size超过阈值，则开始扩容
         if (++size > threshold)
             resize();
         afterNodeInsertion(evict);
@@ -689,6 +714,7 @@ public class HashMap<K,V> extends AbstractMap<K,V>
             }
             else if ((newCap = oldCap << 1) < MAXIMUM_CAPACITY &&
                      oldCap >= DEFAULT_INITIAL_CAPACITY)
+                // 扩大一倍
                 newThr = oldThr << 1; // double threshold
         }
         else if (oldThr > 0) // initial capacity was placed in threshold
@@ -703,22 +729,31 @@ public class HashMap<K,V> extends AbstractMap<K,V>
                       (int)ft : Integer.MAX_VALUE);
         }
         threshold = newThr;
+        // 新数组初始化
         @SuppressWarnings({"rawtypes","unchecked"})
         Node<K,V>[] newTab = (Node<K,V>[])new Node[newCap];
         table = newTab;
         if (oldTab != null) {
+            // 遍历数据，迁移数据
             for (int j = 0; j < oldCap; ++j) {
                 Node<K,V> e;
                 if ((e = oldTab[j]) != null) {
                     oldTab[j] = null;
                     if (e.next == null)
+                        // 单个元素，直接迁移
                         newTab[e.hash & (newCap - 1)] = e;
                     else if (e instanceof TreeNode)
+                        // 节点红黑树
                         ((TreeNode<K,V>)e).split(this, newTab, j, oldCap);
                     else { // preserve order
-                        Node<K,V> loHead = null, loTail = null;
-                        Node<K,V> hiHead = null, hiTail = null;
+                        /**
+                         * 链表处理
+                         * 拆分成两个链表，放到新数组中
+                         */
+                        Node<K,V> loHead = null, loTail = null; // 第一个链表
+                        Node<K,V> hiHead = null, hiTail = null; // 第二个链表
                         Node<K,V> next;
+                        // 从e节点开始遍历链表
                         do {
                             next = e.next;
                             if ((e.hash & oldCap) == 0) {
@@ -738,10 +773,12 @@ public class HashMap<K,V> extends AbstractMap<K,V>
                         } while ((e = next) != null);
                         if (loTail != null) {
                             loTail.next = null;
+                            // 第一个链表
                             newTab[j] = loHead;
                         }
                         if (hiTail != null) {
                             hiTail.next = null;
+                            // 第二个链表 j+oldCap
                             newTab[j + oldCap] = hiHead;
                         }
                     }
@@ -1772,6 +1809,7 @@ public class HashMap<K,V> extends AbstractMap<K,V>
      */
 
     // Create a regular (non-tree) node
+    // 头插入法
     Node<K,V> newNode(int hash, K key, V value, Node<K,V> next) {
         return new Node<>(hash, key, value, next);
     }
@@ -2190,6 +2228,7 @@ public class HashMap<K,V> extends AbstractMap<K,V>
 
             if (loHead != null) {
                 if (lc <= UNTREEIFY_THRESHOLD)
+                    // 从红黑树还原成链表
                     tab[index] = loHead.untreeify(map);
                 else {
                     tab[index] = loHead;
