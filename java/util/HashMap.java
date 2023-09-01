@@ -140,7 +140,6 @@ import sun.misc.SharedSecrets;
  *
  *
  * HashMap在JDK7和JDK8中的区别及其详解--https://blog.csdn.net/zmj199536/article/details/100990213
- * HashMap链表成环（JDK1.7）原因及源码分析--https://blog.csdn.net/qq_26012495/article/details/120836406
  * HashMap☞JDK7中成环原因及JDK8的解决方式--https://blog.csdn.net/wei_gg/article/details/115645957
  *
  */
@@ -694,6 +693,8 @@ public class HashMap<K,V> extends AbstractMap<K,V>
     }
 
     /**
+     * 规避了链表成环问题
+     *
      * Initializes or doubles table size.  If null, allocates in
      * accord with initial capacity target held in field threshold.
      * Otherwise, because we are using power-of-two expansion, the
@@ -747,8 +748,11 @@ public class HashMap<K,V> extends AbstractMap<K,V>
                         ((TreeNode<K,V>)e).split(this, newTab, j, oldCap);
                     else { // preserve order
                         /**
+                         * https://blog.csdn.net/wei_gg/article/details/115645957
                          * 链表处理
-                         * 拆分成两个链表，放到新数组中
+                         * 拆分成两个链表，放到新数组中----扩容后，hash值根据扩容后的cap计算出来的索引是会变化的，i、i+oldCap这两个位置，所以需要两个链表
+                         * loHead表示老值，扩容后，计算出索引位置不变的元素
+                         * hiHead表示新值，扩容后，计算出索引位置变化的元素
                          */
                         Node<K,V> loHead = null, loTail = null; // 第一个链表
                         Node<K,V> hiHead = null, hiTail = null; // 第二个链表
@@ -756,14 +760,19 @@ public class HashMap<K,V> extends AbstractMap<K,V>
                         // 从e节点开始遍历链表
                         do {
                             next = e.next;
+                            // 表示老值链表
                             if ((e.hash & oldCap) == 0) {
                                 if (loTail == null)
                                     loHead = e;
                                 else
+                                    // 尾插入
                                     loTail.next = e;
+                                // tail指针后移指向链表最后一个节点
                                 loTail = e;
                             }
+                            // 表示新值链表
                             else {
+                                // 同上
                                 if (hiTail == null)
                                     hiHead = e;
                                 else
@@ -771,14 +780,19 @@ public class HashMap<K,V> extends AbstractMap<K,V>
                                 hiTail = e;
                             }
                         } while ((e = next) != null);
+                        /**
+                         * loHead、hiHead都是局部变量，其他线程不会读取到
+                         * 循环结束后才给数组赋值，
+                         * 规避成环问题
+                         */
                         if (loTail != null) {
                             loTail.next = null;
-                            // 第一个链表
+                            // 老值链表赋值给原来数组索引位置
                             newTab[j] = loHead;
                         }
                         if (hiTail != null) {
                             hiTail.next = null;
-                            // 第二个链表 j+oldCap
+                            // 新值链表 j+oldCap
                             newTab[j + oldCap] = hiHead;
                         }
                     }
