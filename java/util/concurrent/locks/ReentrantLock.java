@@ -263,8 +263,9 @@ public class ReentrantLock implements Lock, java.io.Serializable {
                         return true;
                 }
             }
-            // 当前线程就是加锁的线程
+            // state > 0，看下是不是自己加的锁
             else if (current == getExclusiveOwnerThread()) {
+                // 当前线程就是加锁的线程
                 // 可重入，每重入一次，state加一  ---->  获取多少次，就需要释放多少次
                 int nextc = c + acquires;
                 if (nextc < 0)

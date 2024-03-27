@@ -1174,7 +1174,7 @@ public class ThreadPoolExecutor extends AbstractExecutorService {
             }
 
             try {
-                // 获取wor
+                // 获取work
                 Runnable r = timed ?
                     workQueue.poll(keepAliveTime, TimeUnit.NANOSECONDS) :
                         // 如何保证核心线程数不被销毁的
@@ -2257,7 +2257,7 @@ public class ThreadPoolExecutor extends AbstractExecutorService {
     /**
      * poll，如果线程池没有关闭，移除workQueue中的队头元素，然后提交当前任务
      *
-     * A handler for rejected tasks that discards the oldest unhandled
+     * A handler for rejected tasks that discards(丢弃) the oldest unhandled
      * request and then retries {@code execute}, unless the executor
      * is shut down, in which case the task is discarded.
      */

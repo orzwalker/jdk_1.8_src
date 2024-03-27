@@ -102,7 +102,7 @@ import sun.misc.SharedSecrets;
  * <a href="{@docRoot}/../technotes/guides/collections/index.html">
  * Java Collections Framework</a>.
  *
- * 带排序的BlockingQueue实现----二叉堆算法是实现
+ * 带排序的BlockingQueue实现----二叉堆算法实现
  *
  * @since 1.5
  * @author Doug Lea

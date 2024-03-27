@@ -392,11 +392,13 @@ public abstract class AbstractQueuedSynchronizer
         /**
          * Marker to indicate a node is waiting in shared mode
          * 标识节点当前在共享模式下
+         * 读读共享、读写互斥
          **/
         static final Node SHARED = new Node();
         /**
          * Marker to indicate a node is waiting in exclusive mode
          * 标识节点当前在独占模式下
+         * 互斥锁，其他线程无法访问
          **/
         static final Node EXCLUSIVE = null;
         // ==============两种模式 end===================
@@ -488,7 +490,7 @@ public abstract class AbstractQueuedSynchronizer
         /**
          * The thread that enqueued this node.  Initialized on
          * construction and nulled out after use.
-         * 节点对应的线程，使用后置为null
+         * 节点对应的线程，使用后，置为null
          */
         volatile Thread thread;
 
@@ -730,7 +732,7 @@ public abstract class AbstractQueuedSynchronizer
         Node s = node.next;
         if (s == null || s.waitStatus > 0) {
             s = null;
-            // 从后往前找，找到ws<=0的后继节点
+            // 从后往前找，找到最靠近head节点、且ws<=0的后继节点
             // FIXME: 2022/9/22 为什么不从当前head往后找呢？找到第一个就完事了
             //  ====找后继节点，如果过程中有enq操作，并且t.next=node还没执行完成，那么就遍历不到node这个节点==断链
             //  从tail往前遍历，一定是个完整的链表关系====因为tail赋值是CAS操作的
@@ -994,12 +996,12 @@ public abstract class AbstractQueuedSynchronizer
                 // 前驱节点
                 final Node p = node.predecessor();
                 // 前驱是head====当前节点进入了阻塞队列，并且是队列的第一个元素（head的next节点）
-                // 当前节点去尝试竞争一下锁
-                // 只有第一个节点才会去尝试加锁====公平
+                // 当前节点去尝试竞争一下锁，为什么回去尝试？
+                // --p是队头，这个队头有可能是刚刚初始化的、且没有设置任何线程，所以可以尝试去获取锁
                 if (p == head && tryAcquire(arg)) {
                     // 尝试加锁成功，head后移指向当前节点，此时head.thread==null，prev==null
-                    setHead(node);
-                    p.next = null; // help GC，也就是head.next指向node这个指向被释放，head没有引用任何对象，GC过程中会回收掉
+                    setHead(node); // node作为头节点，也是持有锁的线程对应的节点
+                    p.next = null; // help GC，也就是head.next指向node这个指向被断开，原head指向的对象在GC过程中会回收掉
                     failed = false;
                     // 这个if条件不满足的话，一直会自旋，不会退出
                     // 除非挂起成功
@@ -1009,6 +1011,7 @@ public abstract class AbstractQueuedSynchronizer
                 // 上边的分支没有成功
                 // 1、当前节点不是队头（除过head）；2、加锁失败
                 // head的ws是不是-1，这样head线程执行完释放锁后，会自动唤起next也就是node节点里头的线程
+                // 如果不是-1，就从当前节点往前找，找个能唤醒当前节点的前驱节点，过程中也可以将满足条件的节点置为-1，作为前驱结点来唤醒自己
                 if (shouldParkAfterFailedAcquire(p, node) &&
                         // 使用park挂起node节点的thread
                         parkAndCheckInterrupt()) {
@@ -1137,6 +1140,11 @@ public abstract class AbstractQueuedSynchronizer
                 final Node p = node.predecessor();
                 if (p == head) {
                     // 前驱节点是head，尝试再次获取一次锁
+                    /**
+                     * protected int tryAcquireShared(int acquires) {
+                     *     return (getState() == 0) ? 1 : -1;
+                     * }
+                     */
                     int r = tryAcquireShared(arg);
                     if (r >= 0) {
                         // 占用head并唤醒阻塞队列中的其他线程
