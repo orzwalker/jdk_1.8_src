@@ -741,6 +741,7 @@ public class ThreadPoolExecutor extends AbstractExecutorService {
                 (runStateOf(c) == SHUTDOWN && ! workQueue.isEmpty()))
                 return;
             if (workerCountOf(c) != 0) { // Eligible to terminate
+                // 关闭线程
                 interruptIdleWorkers(ONLY_ONE);
                 return;
             }
@@ -1099,6 +1100,7 @@ public class ThreadPoolExecutor extends AbstractExecutorService {
         mainLock.lock();
         try {
             completedTaskCount += w.completedTasks;
+            // 在集合中移除
             workers.remove(w);
         } finally {
             mainLock.unlock();
@@ -1168,6 +1170,7 @@ public class ThreadPoolExecutor extends AbstractExecutorService {
 
             if ((wc > maximumPoolSize || (timed && timedOut))
                 && (wc > 1 || workQueue.isEmpty())) {
+                // decrement减少工作线程数----什么时候停止线程呢？
                 if (compareAndDecrementWorkerCount(c))
                     return null;
                 continue;
@@ -1176,6 +1179,8 @@ public class ThreadPoolExecutor extends AbstractExecutorService {
             try {
                 // 获取work
                 Runnable r = timed ?
+                        // 当工作线程数大于核心线程数之后，通过poll获取队列重任务超时（线程池中配置的keepAliveTime）后
+                        // 在下次循环过程中，会执行compareAndDecrementWorkerCount，一个个停止工作线程
                     workQueue.poll(keepAliveTime, TimeUnit.NANOSECONDS) :
                         // 如何保证核心线程数不被销毁的
                         // wc小于core时，timed==false，执行take()阻塞方法，阻塞线程，所以不会被销毁
@@ -1247,6 +1252,7 @@ public class ThreadPoolExecutor extends AbstractExecutorService {
         try {
             // 创建完的worker循环从workQueue中获取任务
             // 除非这个worker.thread被中断，否则一直存在，并且循环获取任务并执行
+            // getTask可能拿到null（方法逻辑内部的实现），导致退出循环
             while (task != null || (task = getTask()) != null) {
                 w.lock();
                 // If pool is stopping, ensure thread is interrupted;
@@ -1291,6 +1297,7 @@ public class ThreadPoolExecutor extends AbstractExecutorService {
         } finally {
             // 1、说明while循环结束，workQueue中没有任务了，执行关闭
             // 2、任务执行过程中发生了异常
+            // 关闭当前线程
             processWorkerExit(w, completedAbruptly);
         }
     }

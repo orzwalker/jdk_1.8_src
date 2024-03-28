@@ -637,7 +637,7 @@ public class HashMap<K,V> extends AbstractMap<K,V>
                    boolean evict) {
         Node<K,V>[] tab; Node<K,V> p; int n, i;
         if ((tab = table) == null || (n = tab.length) == 0)
-            // 第一次put时会触发resize操作
+            // 第一次put时会触发resize操作，并初始化数组
             n = (tab = resize()).length;
         if ((p = tab[i = (n - 1) & hash]) == null)
             // 当前槽位为空，则node存放到这个位置
@@ -657,7 +657,7 @@ public class HashMap<K,V> extends AbstractMap<K,V>
             else {
                 // 说明这个位置是个链表
                 for (int binCount = 0; ; ++binCount) {
-                    // 链表元素next节点为空，直接尾插入
+                    // 链表元素next节点为空，直接[尾插入]
                     if ((e = p.next) == null) {
                         p.next = newNode(hash, key, value, null);
                         if (binCount >= TREEIFY_THRESHOLD - 1) // -1 for 1st
@@ -730,7 +730,7 @@ public class HashMap<K,V> extends AbstractMap<K,V>
                       (int)ft : Integer.MAX_VALUE);
         }
         threshold = newThr;
-        // 新数组初始化
+        // 新数组初始化----和1.7不同，构造方法中不初始化数组，而是在扩容过程中初始化
         @SuppressWarnings({"rawtypes","unchecked"})
         Node<K,V>[] newTab = (Node<K,V>[])new Node[newCap];
         table = newTab;
@@ -1823,7 +1823,6 @@ public class HashMap<K,V> extends AbstractMap<K,V>
      */
 
     // Create a regular (non-tree) node
-    // 头插入法
     Node<K,V> newNode(int hash, K key, V value, Node<K,V> next) {
         return new Node<>(hash, key, value, next);
     }
