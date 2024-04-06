@@ -98,6 +98,7 @@ public class DriverManager {
      * jdbc.properties and then use the {@code ServiceLoader} mechanism
      */
     static {
+        // 加载第三方driver，也就是上层类加载器委派下层加载器加载第三方driver
         loadInitialDrivers();
         println("JDBC DriverManager initialized");
     }
@@ -583,6 +584,7 @@ public class DriverManager {
         AccessController.doPrivileged(new PrivilegedAction<Void>() {
             public Void run() {
 
+                // 加载第三方driver，也就是上层类加载器委派下层加载器加载第三方driver
                 ServiceLoader<Driver> loadedDrivers = ServiceLoader.load(Driver.class);
                 Iterator<Driver> driversIterator = loadedDrivers.iterator();
 

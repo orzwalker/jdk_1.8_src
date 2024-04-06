@@ -534,7 +534,9 @@ public final class ServiceLoader<S>
      * @return A new service loader
      */
     public static <S> ServiceLoader<S> load(Class<S> service) {
+        // 获取当前的类加载器，一般指Application ClassLoader
         ClassLoader cl = Thread.currentThread().getContextClassLoader();
+        // 加载第三方class
         return ServiceLoader.load(service, cl);
     }
 
